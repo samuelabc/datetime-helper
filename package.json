@@ -6,15 +6,20 @@
     "dev": "astro dev",
     "build": "astro build",
     "build:wasm": "cd crates/datetime-engine && wasm-pack build --target web",
+    "test": "vitest run",
     "preview": "astro preview",
     "astro": "astro"
   },
   "devDependencies": {
     "@astrojs/svelte": "^7.2.5",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/vite": "^4.1.18",
+    "@testing-library/svelte": "^5.3.1",
     "astro": "^5.17.1",
+    "jsdom": "^28.1.0",
     "svelte": "^5.51.1",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

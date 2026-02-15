@@ -44,9 +44,9 @@ development_status:
   epic-1: in-progress
   1-1-project-scaffolding-wasm-engine-validation: done
   1-2-page-layout-wasm-bridge-integration: done
-  1-3-live-ticking-hero-timestamp-multi-format-results: backlog
-  1-4-one-click-copy-to-clipboard: backlog
-  1-5-ci-cd-pipeline-production-deployment: backlog
+  1-3-live-ticking-hero-timestamp-multi-format-results: done
+  1-4-one-click-copy-to-clipboard: done
+  1-5-ci-cd-pipeline-production-deployment: ready-for-dev
   epic-1-retrospective: optional
 
   # Epic 2: Date Math Calculator
