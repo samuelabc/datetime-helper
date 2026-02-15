@@ -1,0 +1,85 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      # 1. Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Rust toolchain + wasm target
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      # 3. Rust dependency caching
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "crates/datetime-engine -> target"
+
+      # 4. Install wasm-pack
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'v0.14.0'
+
+      # 5. Rust tests (MUST pass before Wasm build)
+      - name: Run Rust tests
+        working-directory: crates/datetime-engine
+        run: cargo test
+
+      # 6. Build Wasm module
+      - name: Build Wasm module
+        working-directory: crates/datetime-engine
+        run: wasm-pack build --target web
+
+      # 7. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # 8. Setup Node.js with pnpm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      # 9. Install Node dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 10. Run Vitest suite
+      - name: Run frontend tests
+        run: pnpm test -- --reporter=github-actions --reporter=default
+
+      # 11. Build Astro production site
+      - name: Build site
+        run: pnpm build
+
+      # 12. Deploy to Cloudflare Pages (main branch only)
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=datetime-helper
