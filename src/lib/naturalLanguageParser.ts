@@ -9,6 +9,14 @@ export interface NaturalLanguageParseResult {
     amount: number;
     unit: OperationUnit;
   }>;
+  confidence?: {
+    summary: string;
+    steps: Array<{
+      operationIndex: number;
+      score: number;
+      sourceText: string;
+    }>;
+  };
 }
 
 export type ParseErrorCode =
@@ -35,6 +43,14 @@ export interface AiProviderOperation {
 export interface AiProviderParseOutput {
   startDate?: string;
   operations?: AiProviderOperation[];
+  confidence?: {
+    summary?: string;
+    steps?: Array<{
+      operationIndex: number;
+      score: number;
+      sourceText: string;
+    }>;
+  };
 }
 
 const unitMap: Record<string, OperationUnit> = {
@@ -123,8 +139,22 @@ export function parseNaturalLanguagePrompt(prompt: string): NaturalLanguageParse
     throw new NaturalLanguageParseError("EMPTY_PROMPT", "Enter a prompt to parse.");
   }
 
-  const segments = normalized.split(/\b(?:then|and|,)\b/).map((segment) => segment.trim()).filter(Boolean);
-  const operations = segments.map(parseSegment).filter((segment): segment is NonNullable<typeof segment> => segment !== null);
+  const segments = normalized
+    .split(/\b(?:then|and|,)\b/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const parsedSegments = segments
+    .map((segment, index) => {
+      const operation = parseSegment(segment);
+      if (!operation) return null;
+      return {
+        operation,
+        sourceText: segment,
+        operationIndex: index,
+      };
+    })
+    .filter((segment): segment is NonNullable<typeof segment> => segment !== null);
+  const operations = parsedSegments.map((item) => item.operation);
 
   if (operations.length === 0) {
     const hasDateSignals = /\b(today|tomorrow|yesterday|now|\d{4}-\d{2}-\d{2})\b/.test(normalized);
@@ -152,6 +182,14 @@ export function parseNaturalLanguagePrompt(prompt: string): NaturalLanguageParse
   return {
     startDateIntent,
     operations,
+    confidence: {
+      summary: "Heuristic parse confidence available.",
+      steps: parsedSegments.map((segment, index) => ({
+        operationIndex: index,
+        score: 0.92,
+        sourceText: segment.sourceText,
+      })),
+    },
   };
 }
 
@@ -185,5 +223,14 @@ export function parseAiProviderOutput(output: AiProviderParseOutput): NaturalLan
       ? { kind: "explicit", value: output.startDate.trim() }
       : { kind: "now" };
 
-  return { startDateIntent, operations };
+  return {
+    startDateIntent,
+    operations,
+    confidence: output.confidence
+      ? {
+          summary: output.confidence.summary ?? "Provider confidence metadata available.",
+          steps: Array.isArray(output.confidence.steps) ? output.confidence.steps : [],
+        }
+      : undefined,
+  };
 }

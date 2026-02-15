@@ -10,4 +10,12 @@ describe("AiRequestController", () => {
     expect(controller.isLatest(first)).toBe(false);
     expect(controller.isLatest(second)).toBe(true);
   });
+
+  it("cancels previous in-flight request when a new one begins", () => {
+    const controller = new AiRequestController();
+    const first = controller.begin();
+    controller.begin();
+
+    expect(first.signal.aborted).toBe(true);
+  });
 });

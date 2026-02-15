@@ -235,6 +235,8 @@ NFR18: Identical inputs produce identical results across all supported browsers
 - Epic 4: AI natural language accelerator (Cmd+K parse -> calculator auto-populate -> auto-execute with editable steps)
 - Epic 5: URL state, shareability, and URL-as-API contract for human and agent workflows
 - Epic 6: Reverse decode and advanced time utilities (timestamp decode, higher-order operations, extended utility flows)
+- Epic 7: AI confidence, provider flexibility, and trust controls (confidence diff + optional provider key routing)
+- Epic 8: Platform expansion for reusable embedding and adjacent developer workflows (web component, cron debugging, countdown/bookmarklet)
 
 ## Epic List
 
@@ -261,6 +263,14 @@ Users and AI agents can encode calculator state in URL parameters, restore deter
 ### Epic 6: Reverse Decode & Advanced Time Utilities (Post-MVP)
 Users can decode timestamps and perform advanced date-time workflows while preserving the same fast, copy-first interaction model.
 **FRs covered:** Post-MVP (outside FR1–FR31)
+
+### Epic 7: AI Trust & Provider Flexibility (Vision)
+Users gain transparent confidence signals for AI-generated operations and optional provider flexibility, so AI acceleration remains trustworthy and usable across browser environments.
+**FRs covered:** Vision-phase (outside FR1–FR31)
+
+### Epic 8: Reusable Platform Extensions (Vision)
+The core datetime engine and UX become reusable in external contexts while expanding into adjacent developer workflows that preserve the tool's speed-first interaction model.
+**FRs covered:** Vision-phase (outside FR1–FR31)
 
 ## Epic 1: Live Timestamp Display & One-Click Copy
 
@@ -909,3 +919,155 @@ So that I can reason about the same instant in context without external tools.
 **Given** timezone controls are unsupported in a constrained environment,
 **When** feature detection runs,
 **Then** controls degrade gracefully to UTC/Local baseline without blocking core calculator usage.
+
+## Epic 7: AI Trust & Provider Flexibility (Vision)
+
+Users gain transparent confidence signals for AI-generated operations and optional provider flexibility, so AI acceleration remains trustworthy and usable across browser environments.
+
+### Story 7.1: AI Confidence Diff for Parsed Operations
+
+As a developer,
+I want to see confidence and interpretation details for AI-generated calculator steps,
+So that I can quickly trust or correct parsed results before using them.
+
+**Acceptance Criteria:**
+
+**Given** I submit a natural-language prompt in the command palette,
+**When** parsing succeeds,
+**Then** the response includes per-step confidence metadata and a normalized intent summary suitable for UI display.
+
+**Given** confidence metadata is present,
+**When** the calculator applies parsed operations,
+**Then** the UI highlights low-confidence fields without blocking execution, and all fields remain editable.
+
+**Given** a user expands confidence details,
+**When** the diff view opens,
+**Then** it shows prompt-to-operation mapping (what text mapped to which structured step) in a compact, scannable format.
+
+**Given** confidence metadata is absent from a provider,
+**When** results are rendered,
+**Then** the UI falls back to a neutral "confidence unavailable" state and preserves core calculator flow.
+
+### Story 7.2: Optional Gemini API Key & Provider Routing
+
+As a developer outside supported on-device AI environments,
+I want to provide an optional Gemini API key for AI parsing,
+So that natural-language features still work when local browser AI is unavailable.
+
+**Acceptance Criteria:**
+
+**Given** local browser AI is unavailable,
+**When** I open AI settings,
+**Then** I can add or remove an optional Gemini API key stored locally on-device (not sent to project-owned servers).
+
+**Given** a valid optional key is configured,
+**When** I submit a natural-language prompt,
+**Then** parsing routes to the configured provider and returns the same structured operation schema used by local AI mode.
+
+**Given** the optional key is missing, invalid, or rate-limited,
+**When** parsing is attempted,
+**Then** the UI shows clear inline error feedback and keeps prior calculator state unchanged.
+
+**Given** I clear the configured key,
+**When** I submit future prompts,
+**Then** the app reverts to local provider detection and graceful fallback messaging.
+
+### Story 7.3: AI Safety, Privacy, and Request Control
+
+As a privacy-conscious developer,
+I want explicit controls over AI request behavior,
+So that I can use AI acceleration without losing data or execution safety.
+
+**Acceptance Criteria:**
+
+**Given** multiple prompts are submitted in rapid succession,
+**When** requests overlap,
+**Then** prior in-flight requests are cancelled and only the latest successful response can mutate calculator state.
+
+**Given** AI request/response handling runs,
+**When** sensitive input handling policy is applied,
+**Then** no prompt or response content is persisted beyond session-scoped state unless explicitly user-enabled.
+
+**Given** an AI request fails due to timeout or network/provider error,
+**When** failure is returned,
+**Then** the app surfaces a typed error with retry guidance and preserves current calculator outputs.
+
+**Given** AI behavior telemetry is enabled for diagnostics,
+**When** events are emitted,
+**Then** they contain only operational metadata (timing/status/source) and exclude raw prompt content by default.
+
+## Epic 8: Reusable Platform Extensions (Vision)
+
+The core datetime engine and UX become reusable in external contexts while expanding into adjacent developer workflows that preserve the tool's speed-first interaction model.
+
+### Story 8.1: Web Component Extraction (`<datetime-helper>`)
+
+As a platform integrator,
+I want datetime-helper available as an embeddable web component,
+So that I can reuse the calculator in docs, internal dashboards, and other web apps.
+
+**Acceptance Criteria:**
+
+**Given** the project build pipeline runs,
+**When** web component packaging is enabled,
+**Then** it outputs a standards-based `<datetime-helper>` custom element bundle with documented import and usage instructions.
+
+**Given** a host page includes the component,
+**When** it initializes,
+**Then** core calculator functionality (input, live results, copy actions) works without requiring framework-specific adapters.
+
+**Given** host page styles differ from datetime-helper defaults,
+**When** the component renders,
+**Then** it avoids destructive style leakage and remains visually/functionally stable.
+
+**Given** integrators pass initial state attributes or props,
+**When** the component mounts,
+**Then** it hydrates deterministically and reflects equivalent behavior to first-party URL/state initialization rules.
+
+### Story 8.2: Cron Job Debugger Utility
+
+As a backend engineer,
+I want cron schedule debugging features adjacent to datetime calculations,
+So that I can reason about execution windows and timestamps in one workflow.
+
+**Acceptance Criteria:**
+
+**Given** I enter a cron expression and reference timezone,
+**When** the cron utility evaluates it,
+**Then** it displays upcoming run instants and corresponding Unix timestamps using the same formatting/copy patterns as core results.
+
+**Given** an invalid cron expression is provided,
+**When** validation runs,
+**Then** inline error feedback appears with no crash and prior valid outputs remain visible.
+
+**Given** I select any computed run instant,
+**When** I apply it to calculator state,
+**Then** the base date/time updates and downstream operations recalculate immediately.
+
+**Given** cron debugger is not needed,
+**When** the feature is collapsed or disabled,
+**Then** the main calculator remains uncluttered and performance budgets are preserved.
+
+### Story 8.3: Countdown / Time-Until and Bookmarklet Launch
+
+As a developer in fast operational workflows,
+I want countdown/time-until outputs and a bookmarklet entry point,
+So that I can launch and use datetime-helper from any context in seconds.
+
+**Acceptance Criteria:**
+
+**Given** I choose a target instant,
+**When** countdown mode is active,
+**Then** the app shows deterministic "time until" and "time since" representations alongside standard format outputs.
+
+**Given** countdown values update over time,
+**When** live updates run,
+**Then** they respect reduced-motion and accessibility constraints and avoid layout jank.
+
+**Given** bookmarklet generation is enabled,
+**When** I install and trigger the bookmarklet from another webpage,
+**Then** it opens datetime-helper with encoded context/state in the URL where possible.
+
+**Given** bookmarklet context cannot be parsed,
+**When** datetime-helper opens,
+**Then** it gracefully falls back to default "now" state and preserves usability.

@@ -9,16 +9,27 @@
   import AddOperationButton from "./AddOperationButton.svelte";
   import ResetButton from "./ResetButton.svelte";
   import CommandPalette from "./CommandPalette.svelte";
+  import AIConfidenceDiff from "./AIConfidenceDiff.svelte";
+  import CountdownPanel from "./CountdownPanel.svelte";
+  import CronDebugger from "./CronDebugger.svelte";
   import ShareLinkButton from "./ShareLinkButton.svelte";
   import ReverseDecodeInput from "./ReverseDecodeInput.svelte";
   import TimezoneControls from "./TimezoneControls.svelte";
   import { detectAiAvailability, type AiAvailabilityResult } from "../lib/aiAvailability";
-  import { parseNaturalLanguagePrompt, parsedOperationsToRows, NaturalLanguageParseError } from "../lib/naturalLanguageParser";
+  import { parsedOperationsToRows, NaturalLanguageParseError } from "../lib/naturalLanguageParser";
   import { AiRequestController } from "../lib/aiRequestController";
+  import { routeAiParseRequest, AiProviderError } from "../lib/aiProviderRouter";
+  import { loadAiSettings, saveAiSettings, clearGeminiApiKey, type AiSettings } from "../lib/aiSettings";
+  import { toConfidenceViewModel, type ConfidenceViewModel } from "../lib/aiConfidence";
+  import { persistPromptByPolicy } from "../lib/aiPrivacyPolicy";
+  import { emitAiTelemetry } from "../lib/aiTelemetry";
   import { encodeUrlState, decodeUrlState } from "../lib/urlState";
+  import { buildBookmarklet, parseBookmarkletSearch } from "../lib/bookmarklet";
   import { decodeDatetimeInput, ReverseDecodeError } from "../lib/reverseDecode";
   import { applyTimezoneContext, supportsIanaTimeZones, type TimezoneMode } from "../lib/timezoneContext";
   import { applyOperationChain, SnapOperationError } from "../lib/snapOperations";
+  import { getCountdownValue } from "../lib/countdown";
+  import { getNextCronRuns, CronParseError, type CronRunInstant } from "../lib/cronDebugger";
 
   const createDefaultOperation = (id: number): OperationRowState => ({
     id,
@@ -50,6 +61,22 @@
   let aiApplyAnnouncement = $state("");
   let previousFocusedElement = $state<HTMLElement | null>(null);
   let aiAvailability = $state<AiAvailabilityResult>({ state: "unavailable", message: "Checking AI availability..." });
+  let aiSettings = $state<AiSettings>({
+    geminiApiKey: null,
+    allowPromptPersistence: false,
+    telemetryEnabled: false,
+  });
+  let sessionPromptStore = $state<{ value: string | null }>({ value: null });
+  let confidenceModel = $state<ConfidenceViewModel | null>(null);
+  let confidenceDiffOpen = $state(false);
+  let countdownTargetIso = $state<string | null>(null);
+  let countdownNowIso = $state(new Date().toISOString());
+  let cronOpen = $state(false);
+  let cronExpression = $state("0 * * * *");
+  let cronRuns = $state<CronRunInstant[]>([]);
+  let cronError = $state<string | null>(null);
+  let cronReferenceTimezone = $state<"UTC" | "LOCAL">("UTC");
+  let lowConfidenceOperationIds = $state<number[]>([]);
 
   let reverseMode = $state(false);
   let reverseDecodeInput = $state("");
@@ -73,6 +100,14 @@
     if (typeof window === "undefined") return `?${shareQuery}`;
     return `${window.location.origin}${window.location.pathname}?${shareQuery}`;
   });
+  let bookmarkletScript = $derived.by(() => {
+    const baseUrl = typeof window === "undefined" ? "https://example.invalid" : `${window.location.origin}${window.location.pathname}`;
+    return buildBookmarklet(baseUrl, shareQuery);
+  });
+  let countdownValue = $derived.by(() => (countdownTargetIso ? getCountdownValue(countdownNowIso, countdownTargetIso) : null));
+  let countdownUntil = $derived.by(() => (countdownValue && countdownValue.mode === "until" ? countdownValue : null));
+  let countdownSince = $derived.by(() => (countdownValue && countdownValue.mode === "since" ? countdownValue : null));
+  let countdownAnnouncement = $state("");
 
   let showReset = $derived.by(() => {
     const firstOperation = operations[0];
@@ -144,7 +179,7 @@
       explicitStartDate: null,
       isNowMode: true,
     },
-  ) => {
+  ): number[] => {
     const previousState = {
       startDateInput,
       explicitStartDate,
@@ -158,9 +193,11 @@
       startDateInput = startContext.startDateInput;
       explicitStartDate = startContext.explicitStartDate;
       startDateError = null;
-      operations = parsedRows.map((row, index) => ({ ...row, id: index + 1 }));
+      const applied = parsedRows.map((row, index) => ({ ...row, id: index + 1 }));
+      operations = applied;
       nextOperationId = operations.length + 1;
       recalculate();
+      return applied.map((row) => row.id);
     } catch (error) {
       startDateInput = previousState.startDateInput;
       explicitStartDate = previousState.explicitStartDate;
@@ -177,7 +214,9 @@
     commandPaletteBusy = true;
 
     try {
-      const parsed = parseNaturalLanguagePrompt(prompt);
+      const startedAt = performance.now();
+      const routed = await routeAiParseRequest(prompt, aiAvailability, handle.signal);
+      const parsed = routed.parsed;
       const parsedRows = parsedOperationsToRows(parsed.operations);
       if (parsedRows.length === 0) {
         throw new NaturalLanguageParseError("AMBIGUOUS", "No actionable operations found.");
@@ -186,6 +225,9 @@
       if (!requestController.isLatest(handle)) {
         return;
       }
+      confidenceModel = toConfidenceViewModel(parsed);
+      confidenceDiffOpen = false;
+      persistPromptByPolicy(sessionPromptStore, prompt, aiSettings);
 
       let startContext: { startDateInput: string; explicitStartDate: string | null; isNowMode: boolean } = {
         startDateInput: "now",
@@ -207,12 +249,46 @@
         };
       }
 
-      applyParsedStateAtomically(parsedRows, startContext);
+      const appliedOperationIds = applyParsedStateAtomically(parsedRows, startContext);
+      const lowConfidenceIndexes = (confidenceModel?.steps ?? [])
+        .filter((step) => step.lowConfidence)
+        .map((step) => step.operationIndex);
+      lowConfidenceOperationIds = lowConfidenceIndexes
+        .map((index) => appliedOperationIds[index])
+        .filter((id): id is number => typeof id === "number");
       aiApplyAnnouncement = "Calculator steps updated from AI prompt.";
+      emitAiTelemetry(
+        {
+          source: routed.source,
+          status: "success",
+          durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
+        },
+        aiSettings.telemetryEnabled,
+      );
       commandPaletteOpen = false;
       if (previousFocusedElement) previousFocusedElement.focus();
     } catch (error) {
-      commandPaletteError = error instanceof Error ? error.message : "Unable to parse prompt.";
+      if (error instanceof AiProviderError) {
+        const retrySuffix =
+          error.code === "INVALID_KEY"
+            ? "Update your Gemini key and retry."
+            : error.code === "RATE_LIMITED"
+              ? "Wait a moment, then retry."
+              : error.code === "NETWORK" || error.code === "TIMEOUT"
+                ? "Check connection and retry."
+                : "Retry with a simpler prompt.";
+        commandPaletteError = `${error.message} ${retrySuffix}`;
+      } else {
+        commandPaletteError = error instanceof Error ? error.message : "Unable to parse prompt.";
+      }
+      emitAiTelemetry(
+        {
+          source: aiAvailability.state === "ready" ? "local" : "gemini",
+          status: "error",
+          durationMs: 1,
+        },
+        aiSettings.telemetryEnabled,
+      );
     } finally {
       if (requestController.isLatest(handle)) {
         commandPaletteBusy = false;
@@ -225,6 +301,7 @@
       await init();
       wasmReady = true;
       aiAvailability = detectAiAvailability();
+      aiSettings = loadAiSettings();
       ianaSupported = supportsIanaTimeZones();
       if (ianaSupported && typeof Intl.supportedValuesOf === "function") {
         ianaTimezones = Intl.supportedValuesOf("timeZone").slice(0, 80);
@@ -236,7 +313,7 @@
     }
 
     const decoded = typeof window !== "undefined"
-      ? decodeUrlState(window.location.search, {
+      ? decodeUrlState(parseBookmarkletSearch(window.location.search) ?? window.location.search, {
           startDateInput: "now",
           operations: [createDefaultOperation(1)],
         })
@@ -298,6 +375,19 @@
   });
 
   $effect(() => {
+    if (!countdownValue) {
+      countdownAnnouncement = "";
+      return;
+    }
+    const update = () => {
+      countdownAnnouncement = `${countdownValue.mode === "until" ? "Time until target" : "Time since target"} ${countdownValue.label}`;
+    };
+    update();
+    const interval = setInterval(update, 10000);
+    return () => clearInterval(interval);
+  });
+
+  $effect(() => {
     if (typeof window === "undefined") return;
     const onShortcut = (event: KeyboardEvent) => {
       const isK = event.key.toLowerCase() === "k";
@@ -327,6 +417,26 @@
     if (prefersReducedMotion) return;
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
+  });
+
+  $effect(() => {
+    if (prefersReducedMotion) return;
+    const interval = setInterval(() => {
+      countdownNowIso = new Date().toISOString();
+    }, 1000);
+    return () => clearInterval(interval);
+  });
+
+  $effect(() => {
+    if (!wasmReady || !cronOpen) return;
+    const base = result?.iso8601 ?? new Date().toISOString();
+    try {
+      cronRuns = getNextCronRuns(cronExpression, base, 5, cronReferenceTimezone);
+      cronError = null;
+    } catch (error) {
+      cronRuns = [];
+      cronError = error instanceof CronParseError ? error.message : "Invalid cron expression";
+    }
   });
 
   $effect(() => {
@@ -397,6 +507,7 @@
     reverseMode = false;
     if (operations.length <= 1) return;
     operations = operations.filter((operation) => operation.id !== id);
+    lowConfidenceOperationIds = lowConfidenceOperationIds.filter((currentId) => currentId !== id);
     recalculate();
   };
 
@@ -417,6 +528,8 @@
     const resetId = nextOperationId;
     nextOperationId += 1;
     operations = [createDefaultOperation(resetId)];
+    lowConfidenceOperationIds = [];
+    countdownTargetIso = null;
     recalculate();
   };
 </script>
@@ -426,6 +539,14 @@
   availability={aiAvailability}
   busy={commandPaletteBusy}
   error={commandPaletteError}
+  settings={aiSettings}
+  onSaveSettings={(next) => {
+    aiSettings = next;
+    saveAiSettings(next);
+  }}
+  onClearGeminiKey={() => {
+    aiSettings = clearGeminiApiKey();
+  }}
   onClose={() => {
     commandPaletteOpen = false;
     if (previousFocusedElement) previousFocusedElement.focus();
@@ -482,18 +603,20 @@
       <div>
         <p class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Operations</p>
         <div class="space-y-2">
-          {#each operations as operation (operation.id)}
-            <OperationRow
-              rowId={operation.id}
-              direction={operation.direction}
-              amount={operation.amount}
-              unit={operation.unit}
-              showRemove={operations.length > 1}
-              onDirectionChange={(value) => updateOperation(operation.id, (op) => ({ ...op, direction: value }))}
-              onAmountChange={(value) => updateOperation(operation.id, (op) => ({ ...op, amount: value }))}
-              onUnitChange={(value) => updateOperation(operation.id, (op) => ({ ...op, unit: value }))}
-              onRemove={() => handleRemoveOperation(operation.id)}
-            />
+          {#each operations as operation, index (operation.id)}
+            <div class={lowConfidenceOperationIds.includes(operation.id) ? "rounded-md ring-1 ring-amber-400 p-1" : ""}>
+              <OperationRow
+                rowId={operation.id}
+                direction={operation.direction}
+                amount={operation.amount}
+                unit={operation.unit}
+                showRemove={operations.length > 1}
+                onDirectionChange={(value) => updateOperation(operation.id, (op) => ({ ...op, direction: value }))}
+                onAmountChange={(value) => updateOperation(operation.id, (op) => ({ ...op, amount: value }))}
+                onUnitChange={(value) => updateOperation(operation.id, (op) => ({ ...op, unit: value }))}
+                onRemove={() => handleRemoveOperation(operation.id)}
+              />
+            </div>
           {/each}
           <div class="flex flex-wrap items-center justify-between gap-2">
             <AddOperationButton onClick={handleAddOperation} />
@@ -528,12 +651,46 @@
           Open command palette
         </button>
         <ShareLinkButton value={shareUrl} />
+        <a
+          href={bookmarkletScript}
+          aria-label="Install bookmarklet"
+          class="inline-flex items-center rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          Install bookmarklet
+        </a>
       </div>
       {#if aiAvailability.state !== "ready"}
         <p class="text-xs text-amber-700 dark:text-amber-300">
           {aiAvailability.message}
         </p>
       {/if}
+      {#if aiAvailability.state !== "ready" && aiSettings.geminiApiKey}
+        <p class="text-xs text-green-700 dark:text-green-300">Fallback provider configured via local Gemini API key.</p>
+      {/if}
+      <CronDebugger
+        open={cronOpen}
+        expression={cronExpression}
+        timezone={cronReferenceTimezone}
+        error={cronError}
+        runs={cronRuns}
+        onToggle={() => (cronOpen = !cronOpen)}
+        onExpressionInput={(value) => {
+          cronExpression = value;
+        }}
+        onTimezoneInput={(value) => {
+          cronReferenceTimezone = value;
+        }}
+        onUseRun={(iso) => {
+          reverseMode = false;
+          const validation = validateDate(iso);
+          if (!validation.valid) return;
+          startDateInput = iso;
+          explicitStartDate = validation.normalized ?? iso;
+          isNowMode = false;
+          countdownTargetIso = iso;
+          recalculate();
+        }}
+      />
     </div>
   </section>
 
@@ -542,6 +699,15 @@
     <!-- Hero: Unix Timestamp -->
     {#if wasmReady && result}
       <HeroResultRow value={result.unixTimestamp} isLive={isLive} />
+      <button
+        type="button"
+        class="mt-2 text-xs rounded border border-gray-200 dark:border-slate-600 px-2 py-1"
+        onclick={() => {
+          countdownTargetIso = result.iso8601;
+        }}
+      >
+        Use current result as countdown target
+      </button>
     {:else}
       <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-md p-4">
         <span class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unix Timestamp</span>
@@ -586,6 +752,10 @@
     {#if urlHydrationError}
       <p class="text-sm text-amber-700 dark:text-amber-300 mt-2">{urlHydrationError}</p>
     {/if}
+    <CountdownPanel value={countdownUntil} />
+    <CountdownPanel value={countdownSince} />
+    <AIConfidenceDiff open={confidenceDiffOpen} model={confidenceModel} onToggle={() => (confidenceDiffOpen = !confidenceDiffOpen)} />
     <div class="sr-only" aria-live="polite" aria-atomic="true">{aiApplyAnnouncement}</div>
+    <div class="sr-only" aria-live="polite" aria-atomic="true">{countdownAnnouncement}</div>
   </section>
 </div>

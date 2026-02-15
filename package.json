@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:web-component": "vite build --lib src/web-component/datetime-helper-element.ts --formats es --fileName datetime-helper-element",
     "build:wasm": "cd crates/datetime-engine && wasm-pack build --target web",
     "test": "vitest run",
     "test:e2e": "playwright test",

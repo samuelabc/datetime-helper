@@ -84,3 +84,17 @@ development_status:
   6-2-snap-to-boundary-operations: done
   6-3-timezone-aware-utility-controls: done
   epic-6-retrospective: optional
+
+  # Epic 7: AI Trust & Provider Flexibility (Vision)
+  epic-7: in-progress
+  7-1-ai-confidence-diff-for-parsed-operations: review
+  7-2-optional-gemini-api-key-provider-routing: review
+  7-3-ai-safety-privacy-and-request-control: review
+  epic-7-retrospective: optional
+
+  # Epic 8: Reusable Platform Extensions (Vision)
+  epic-8: in-progress
+  8-1-web-component-extraction-datetime-helper: review
+  8-2-cron-job-debugger-utility: review
+  8-3-countdown-time-until-and-bookmarklet-launch: review
+  epic-8-retrospective: optional

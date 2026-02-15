@@ -1,17 +1,22 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import type { AiAvailabilityResult } from "../lib/aiAvailability";
+  import type { AiSettings } from "../lib/aiSettings";
+  import AISettingsPanel from "./AISettingsPanel.svelte";
 
   interface Props {
     open: boolean;
     availability: AiAvailabilityResult;
     busy: boolean;
     error: string | null;
+    settings: AiSettings;
     onClose: () => void;
     onSubmit: (prompt: string) => Promise<void>;
+    onSaveSettings: (next: AiSettings) => void;
+    onClearGeminiKey: () => void;
   }
 
-  let { open, availability, busy, error, onClose, onSubmit }: Props = $props();
+  let { open, availability, busy, error, settings, onClose, onSubmit, onSaveSettings, onClearGeminiKey }: Props = $props();
   let prompt = $state("");
   let panelRef = $state<HTMLDivElement | null>(null);
   let inputRef = $state<HTMLInputElement | null>(null);
@@ -103,6 +108,8 @@
           <p class="text-xs text-red-600 dark:text-red-300">{error}</p>
         {/if}
 
+        <AISettingsPanel settings={settings} onSave={onSaveSettings} onClearKey={onClearGeminiKey} />
+
         <div class="flex items-center justify-end gap-2">
           <button
             type="button"
@@ -113,7 +120,7 @@
           </button>
           <button
             type="submit"
-            disabled={availability.state !== "ready" || busy}
+            disabled={(availability.state !== "ready" && !settings.geminiApiKey) || busy}
             class="h-10 rounded-md border border-orange-500 bg-orange-500 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             {busy ? "Applying..." : "Apply"}

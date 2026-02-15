@@ -7,12 +7,24 @@ const { calculateMock, validateDateMock } = vi.hoisted(() => ({
   calculateMock: vi.fn(),
   validateDateMock: vi.fn(),
 }));
+const { routeAiParseRequestMock } = vi.hoisted(() => ({
+  routeAiParseRequestMock: vi.fn(),
+}));
 
 // Mock the wasmBridge module
 vi.mock('../lib/wasmBridge', () => ({
   init: vi.fn().mockResolvedValue(undefined),
   calculate: calculateMock,
   validateDate: validateDateMock,
+}));
+vi.mock('../lib/aiAvailability', () => ({
+  detectAiAvailability: vi.fn(() => ({ state: 'ready' })),
+}));
+vi.mock('../lib/aiProviderRouter', () => ({
+  routeAiParseRequest: routeAiParseRequestMock,
+  AiProviderError: class extends Error {
+    code = 'PROVIDER';
+  },
 }));
 
 const defaultResult = {
@@ -121,6 +133,17 @@ describe('Calculator', () => {
     );
     calculateMock.mockClear();
     validateDateMock.mockClear();
+    routeAiParseRequestMock.mockResolvedValue({
+      source: 'local',
+      parsed: {
+        startDateIntent: { kind: 'now' },
+        operations: [{ direction: 'subtract', amount: 6, unit: 'months' }],
+        confidence: {
+          summary: 'Heuristic parse confidence available.',
+          steps: [{ operationIndex: 0, score: 0.52, sourceText: '6 months ago' }],
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -388,5 +411,24 @@ describe('Calculator', () => {
     const layout = container.firstElementChild as HTMLElement;
     expect(layout.className).toContain('flex-col');
     expect(layout.className).toContain('md:flex-row');
+  });
+
+  it('applies AI low-confidence operation while keeping fields editable', async () => {
+    render(Calculator);
+    await waitForWasmInit();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    const input = screen.getByLabelText('Command palette prompt');
+    await fireEvent.input(input, { target: { value: '6 months ago from now' } });
+    await fireEvent.submit(input.closest('form') as HTMLFormElement);
+    await tick();
+
+    expect(document.querySelector('.ring-amber-400')).toBeTruthy();
+    expect(screen.getByText('Heuristic parse confidence available.')).toBeTruthy();
+
+    const amount = screen.getByLabelText('Amount') as HTMLInputElement;
+    await fireEvent.input(amount, { target: { value: '2' } });
+    await tick();
+    expect(amount.value).toBe('2');
   });
 });
