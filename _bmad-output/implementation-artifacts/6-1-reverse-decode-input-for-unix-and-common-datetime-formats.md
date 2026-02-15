@@ -1,6 +1,6 @@
 # Story 6.1: Reverse Decode Input for Unix and Common Datetime Formats
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -1,6 +1,6 @@
 # Story 5.3: Live URL Synchronization and Share-Link Copy
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

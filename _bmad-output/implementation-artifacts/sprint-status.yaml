@@ -64,23 +64,23 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: AI Natural Language Accelerator (Post-MVP)
-  epic-4: in-progress
-  4-1-command-palette-entry-and-availability-detection: in-progress
-  4-2-natural-language-parsing-to-calculator-operations: in-progress
-  4-3-auto-execute-parsed-steps-with-editable-review: in-progress
-  4-4-ai-interaction-accessibility-and-safety-constraints: in-progress
+  epic-4: done
+  4-1-command-palette-entry-and-availability-detection: done
+  4-2-natural-language-parsing-to-calculator-operations: done
+  4-3-auto-execute-parsed-steps-with-editable-review: done
+  4-4-ai-interaction-accessibility-and-safety-constraints: done
   epic-4-retrospective: optional
 
   # Epic 5: URL State, Shareability & URL-as-API (Post-MVP)
-  epic-5: in-progress
-  5-1-url-state-schema-and-deterministic-encoder-decoder: in-progress
-  5-2-state-hydration-from-url-on-page-load: in-progress
-  5-3-live-url-synchronization-and-share-link-copy: in-progress
+  epic-5: done
+  5-1-url-state-schema-and-deterministic-encoder-decoder: done
+  5-2-state-hydration-from-url-on-page-load: done
+  5-3-live-url-synchronization-and-share-link-copy: done
   epic-5-retrospective: optional
 
   # Epic 6: Reverse Decode & Advanced Time Utilities (Post-MVP)
-  epic-6: in-progress
-  6-1-reverse-decode-input-for-unix-and-common-datetime-formats: in-progress
-  6-2-snap-to-boundary-operations: in-progress
-  6-3-timezone-aware-utility-controls: in-progress
+  epic-6: done
+  6-1-reverse-decode-input-for-unix-and-common-datetime-formats: done
+  6-2-snap-to-boundary-operations: done
+  6-3-timezone-aware-utility-controls: done
   epic-6-retrospective: optional
