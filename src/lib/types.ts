@@ -30,11 +30,40 @@ export interface ValidationResult {
  */
 export interface Operation {
   /** Operation type: "add" or "subtract" */
-  type: "add" | "subtract";
+  type: "add" | "subtract" | "snap";
   /** Time unit for the operation */
-  unit: "years" | "months" | "days" | "hours" | "minutes" | "seconds";
+  unit:
+    | "years"
+    | "months"
+    | "days"
+    | "hours"
+    | "minutes"
+    | "seconds"
+    | "startOfDay"
+    | "endOfDay"
+    | "startOfMonth"
+    | "endOfMonth";
   /** Numeric value for the operation */
   value: number;
+}
+
+export type OperationDirection = "add" | "subtract" | "snap";
+
+export type OperationUnit =
+  | "years"
+  | "months"
+  | "days"
+  | "hours"
+  | "minutes"
+  | "seconds";
+
+export type SnapUnit = "startOfDay" | "endOfDay" | "startOfMonth" | "endOfMonth";
+
+export interface OperationRowState {
+  id: number;
+  direction: OperationDirection;
+  amount: number;
+  unit: OperationUnit | SnapUnit;
 }
 
 /**

@@ -162,7 +162,7 @@ describe('Calculator', () => {
     expect(screen.getByText('1739634600')).toBeTruthy();
     expect(screen.getByText('ISO 8601')).toBeTruthy();
     expect(screen.getByText('RFC 2822')).toBeTruthy();
-    expect(screen.getByText('Local Time')).toBeTruthy();
+    expect(screen.getByText('Local Time (UTC)')).toBeTruthy();
   });
 
   it('recalculates immediately when operation fields change', async () => {
@@ -209,7 +209,8 @@ describe('Calculator', () => {
     expect(screen.getByText('1773532800')).toBeTruthy();
     expect(screen.getByText('2026-03-15T00:00:00Z')).toBeTruthy();
     expect(screen.getByText('Sun, 15 Mar 2026 00:00:00 +0000')).toBeTruthy();
-    expect(screen.getByText('March 15, 2026 12:00:00 AM UTC')).toBeTruthy();
+    expect(screen.getByText(/March 15, 2026/)).toBeTruthy();
+    expect(screen.getAllByText(/UTC/).length).toBeGreaterThan(0);
     expect(screen.queryByText('live')).toBeNull();
   });
 

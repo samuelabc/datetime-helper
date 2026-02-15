@@ -41,7 +41,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Live Timestamp Display & One-Click Copy
-  epic-1: in-progress
+  epic-1: done
   1-1-project-scaffolding-wasm-engine-validation: done
   1-2-page-layout-wasm-bridge-integration: done
   1-3-live-ticking-hero-timestamp-multi-format-results: done
@@ -50,7 +50,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Date Math Calculator
-  epic-2: in-progress
+  epic-2: done
   2-1-start-date-input-with-now-default: done
   2-2-single-operation-row-with-live-results: done
   2-3-multi-step-operations-reset: done
@@ -62,3 +62,25 @@ development_status:
   3-2-responsive-layout-for-tablet-mobile: done
   3-3-keyboard-navigation-screen-reader-support: done
   epic-3-retrospective: optional
+
+  # Epic 4: AI Natural Language Accelerator (Post-MVP)
+  epic-4: in-progress
+  4-1-command-palette-entry-and-availability-detection: in-progress
+  4-2-natural-language-parsing-to-calculator-operations: in-progress
+  4-3-auto-execute-parsed-steps-with-editable-review: in-progress
+  4-4-ai-interaction-accessibility-and-safety-constraints: in-progress
+  epic-4-retrospective: optional
+
+  # Epic 5: URL State, Shareability & URL-as-API (Post-MVP)
+  epic-5: in-progress
+  5-1-url-state-schema-and-deterministic-encoder-decoder: in-progress
+  5-2-state-hydration-from-url-on-page-load: in-progress
+  5-3-live-url-synchronization-and-share-link-copy: in-progress
+  epic-5-retrospective: optional
+
+  # Epic 6: Reverse Decode & Advanced Time Utilities (Post-MVP)
+  epic-6: in-progress
+  6-1-reverse-decode-input-for-unix-and-common-datetime-formats: in-progress
+  6-2-snap-to-boundary-operations: in-progress
+  6-3-timezone-aware-utility-controls: in-progress
+  epic-6-retrospective: optional

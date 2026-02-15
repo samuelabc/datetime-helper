@@ -230,6 +230,12 @@ NFR18: Identical inputs produce identical results across all supported browsers
 | FR30 | Epic 3 | WCAG 2.1 AA contrast compliance |
 | FR31 | Epic 3 | No color-only state indication |
 
+**Post-MVP Expansion Coverage (not part of FR1–FR31):**
+
+- Epic 4: AI natural language accelerator (Cmd+K parse -> calculator auto-populate -> auto-execute with editable steps)
+- Epic 5: URL state, shareability, and URL-as-API contract for human and agent workflows
+- Epic 6: Reverse decode and advanced time utilities (timestamp decode, higher-order operations, extended utility flows)
+
 ## Epic List
 
 ### Epic 1: Live Timestamp Display & One-Click Copy
@@ -243,6 +249,18 @@ Users can perform date calculations by adding or subtracting days, months, or ye
 ### Epic 3: Theming, Responsiveness & Accessibility
 Users experience a polished, professional tool with automatic dark/light mode matching their system preference, functional layouts across desktop/tablet/mobile, full keyboard navigation, screen reader support, and WCAG 2.1 AA compliance.
 **FRs covered:** FR23, FR24, FR26, FR27, FR28, FR29, FR30, FR31
+
+### Epic 4: AI Natural Language Accelerator (Post-MVP)
+Users can express date-time intent in natural language (Cmd+K), have the calculator auto-populate and execute instantly, and still retain full transparency and editability of steps.
+**FRs covered:** Post-MVP (outside FR1–FR31)
+
+### Epic 5: URL State, Shareability & URL-as-API (Post-MVP)
+Users and AI agents can encode calculator state in URL parameters, restore deterministic state on load, and share exact reproducible calculations via links.
+**FRs covered:** Post-MVP (outside FR1–FR31)
+
+### Epic 6: Reverse Decode & Advanced Time Utilities (Post-MVP)
+Users can decode timestamps and perform advanced date-time workflows while preserving the same fast, copy-first interaction model.
+**FRs covered:** Post-MVP (outside FR1–FR31)
 
 ## Epic 1: Live Timestamp Display & One-Click Copy
 
@@ -639,3 +657,255 @@ So that I can use datetime-helper effectively regardless of how I interact with 
 **Given** all format labels in result rows,
 **When** a screen reader reads them,
 **Then** labels are properly associated with their values via `aria-describedby` or equivalent, and each format is clearly identified (e.g., "Unix Timestamp," "ISO 8601").
+
+## Epic 4: AI Natural Language Accelerator (Post-MVP)
+
+Users can express date-time intent in natural language (Cmd+K), have the calculator auto-populate and execute instantly, and still retain full transparency and editability of steps.
+
+### Story 4.1: Command Palette Entry and Availability Detection
+
+As a developer,
+I want to open a natural-language command palette quickly and understand whether AI is available,
+So that I can start AI-assisted datetime input without breaking flow.
+
+**Acceptance Criteria:**
+
+**Given** the calculator page is loaded,
+**When** I press Cmd+K (or Ctrl+K on non-macOS),
+**Then** a command palette opens, focus moves to its input, and background content is dimmed but still visible.
+
+**Given** the command palette is open,
+**When** I press Escape or click outside the panel,
+**Then** the palette closes and focus returns to the previously focused element.
+
+**Given** the browser environment supports the configured AI provider,
+**When** the palette initializes,
+**Then** it shows ready state and accepts natural-language prompts.
+
+**Given** the browser environment does not support the configured AI provider,
+**When** the palette initializes,
+**Then** it shows a non-blocking "AI unavailable" message and offers "use calculator directly" guidance.
+
+### Story 4.2: Natural Language Parsing to Calculator Operations
+
+As a developer,
+I want my natural-language date request translated into structured calculator inputs,
+So that I can verify and use AI output without black-box behavior.
+
+**Acceptance Criteria:**
+
+**Given** I submit a prompt such as "6 months ago from now",
+**When** the AI parse completes,
+**Then** the system returns a structured result containing start date intent and ordered operations compatible with the existing calculator schema.
+
+**Given** the parse result includes multiple operations,
+**When** it is transformed to calculator state,
+**Then** operation order is preserved exactly as parsed.
+
+**Given** the parse result is ambiguous or incomplete,
+**When** transformation validation runs,
+**Then** the system returns a typed parse error and does not mutate the existing calculator state.
+
+**Given** parsing succeeds,
+**When** the transformed state is inspected,
+**Then** all fields conform to calculator constraints (direction, non-negative integer amount, valid unit).
+
+### Story 4.3: Auto-Execute Parsed Steps with Editable Review
+
+As a developer,
+I want parsed steps applied immediately while remaining editable,
+So that I get fast results and can correct interpretation errors instantly.
+
+**Acceptance Criteria:**
+
+**Given** a valid parse result is returned,
+**When** the command palette submit flow completes,
+**Then** the calculator state updates in one transaction and all result formats recalculate immediately.
+
+**Given** parsed steps have been applied,
+**When** I inspect the calculator area,
+**Then** I can see each populated field and edit it directly using the same controls as manual mode.
+
+**Given** I edit any AI-populated field,
+**When** the input changes,
+**Then** results update live using standard calculator behavior with no AI dependency.
+
+**Given** AI parsing fails,
+**When** the failure is surfaced,
+**Then** the calculator remains in its prior valid state and an inline error explains what failed.
+
+### Story 4.4: AI Interaction Accessibility and Safety Constraints
+
+As a keyboard and assistive-technology user,
+I want AI interactions to remain accessible and predictable,
+So that natural-language acceleration does not reduce usability or trust.
+
+**Acceptance Criteria:**
+
+**Given** I use keyboard-only navigation,
+**When** the command palette is open,
+**Then** focus is trapped within the palette and Tab order remains logical.
+
+**Given** I submit a prompt and parsing succeeds,
+**When** state is applied,
+**Then** a polite live-region announcement confirms that calculator steps were updated.
+
+**Given** I submit repeated prompts quickly,
+**When** parse requests overlap,
+**Then** only the latest request can mutate calculator state and earlier in-flight responses are ignored.
+
+**Given** `prefers-reduced-motion` is enabled,
+**When** the palette opens and closes,
+**Then** transitions are reduced/removed while preserving functional clarity.
+
+## Epic 5: URL State, Shareability & URL-as-API (Post-MVP)
+
+Users and AI agents can encode calculator state in URL parameters, restore deterministic state on load, and share exact reproducible calculations via links.
+
+### Story 5.1: URL State Schema and Deterministic Encoder/Decoder
+
+As a developer,
+I want a stable URL schema for calculator state,
+So that links are reproducible for both humans and AI agents.
+
+**Acceptance Criteria:**
+
+**Given** a calculator state (start date + ordered operations),
+**When** it is encoded,
+**Then** it produces a canonical query-string format with deterministic field ordering.
+
+**Given** a canonical query string,
+**When** it is decoded,
+**Then** it reconstructs an equivalent calculator state with matching operation order and values.
+
+**Given** unknown or unsupported query parameters are present,
+**When** decode runs,
+**Then** unknown fields are ignored safely without breaking valid state restoration.
+
+**Given** malformed URL state is provided,
+**When** decode validation fails,
+**Then** the app falls back to the last known valid/default state and emits a typed validation error.
+
+### Story 5.2: State Hydration from URL on Page Load
+
+As a returning user,
+I want the app to open exactly in the state represented by the URL,
+So that shared links and bookmarks immediately show the intended calculation.
+
+**Acceptance Criteria:**
+
+**Given** I load a URL with valid query-state parameters,
+**When** the app initializes,
+**Then** calculator inputs are hydrated from the URL before first visible calculation output.
+
+**Given** the URL contains no state parameters,
+**When** the app initializes,
+**Then** it starts in default "now" mode with standard live behavior.
+
+**Given** URL-provided state is invalid,
+**When** hydration runs,
+**Then** the app preserves usability by falling back to default/last-valid state and showing inline feedback.
+
+**Given** hydration succeeds,
+**When** results render,
+**Then** all output formats are internally consistent and correspond to hydrated state.
+
+### Story 5.3: Live URL Synchronization and Share-Link Copy
+
+As a developer,
+I want URL state to stay synchronized and easy to copy,
+So that I can share or reuse exact calculations without manual reconstruction.
+
+**Acceptance Criteria:**
+
+**Given** I change any calculator input,
+**When** state updates,
+**Then** the URL query string updates via `history.replaceState()` without full page reload.
+
+**Given** I click "Copy share link",
+**When** clipboard copy succeeds,
+**Then** the full canonical URL is copied and a brief inline confirmation is shown.
+
+**Given** URL synchronization is active,
+**When** state changes rapidly,
+**Then** updates remain stable and do not introduce visible lag or history spam.
+
+**Given** a copied share link is opened in a new browser session,
+**When** the page loads,
+**Then** the exact calculation state and outputs are reproduced.
+
+## Epic 6: Reverse Decode & Advanced Time Utilities (Post-MVP)
+
+Users can decode timestamps and perform advanced date-time workflows while preserving the same fast, copy-first interaction model.
+
+### Story 6.1: Reverse Decode Input for Unix and Common Datetime Formats
+
+As a developer,
+I want to paste an existing timestamp or datetime string and decode it,
+So that I can quickly inspect equivalent values across supported output formats.
+
+**Acceptance Criteria:**
+
+**Given** reverse mode is available,
+**When** I paste a valid Unix timestamp,
+**Then** the app parses it and displays equivalent ISO 8601, RFC 2822, and local-human outputs.
+
+**Given** I paste a valid ISO 8601 string,
+**When** parsing completes,
+**Then** the Unix timestamp and other formats render as the same instant.
+
+**Given** I paste an invalid or unsupported value,
+**When** validation runs,
+**Then** an inline error is shown and the last valid output remains visible.
+
+**Given** reverse mode output is displayed,
+**When** I click a copy button on any row,
+**Then** copy behavior and confirmation match the existing forward-calculation UX.
+
+### Story 6.2: Snap-to Boundary Operations
+
+As a developer,
+I want quick "snap-to" operations (for example start/end of day or month),
+So that I can produce common boundary timestamps without manual multi-step edits.
+
+**Acceptance Criteria:**
+
+**Given** a valid base date/time,
+**When** I select a supported snap operation (for example startOfDay, endOfDay, startOfMonth, endOfMonth),
+**Then** the calculator applies it as a deterministic operation and results update instantly.
+
+**Given** snap operations are chained with existing add/subtract operations,
+**When** calculation executes,
+**Then** operation order is preserved and output remains consistent.
+
+**Given** a snap operation would produce an invalid intermediate state,
+**When** validation runs,
+**Then** the operation is rejected with inline feedback and prior valid state is preserved.
+
+**Given** a snap operation is applied,
+**When** URL synchronization is enabled,
+**Then** the operation is represented in canonical shareable URL state.
+
+### Story 6.3: Timezone-Aware Utility Controls
+
+As a developer working across regions,
+I want timezone-aware display controls for advanced inspection,
+So that I can reason about the same instant in context without external tools.
+
+**Acceptance Criteria:**
+
+**Given** timezone controls are available,
+**When** I choose UTC or Local display mode,
+**Then** output labels and values reflect the selected context consistently.
+
+**Given** I select a supported IANA timezone (if enabled in this phase),
+**When** results render,
+**Then** displayed local-human context updates to that timezone while preserving the same instant.
+
+**Given** timezone selection changes,
+**When** I copy any output value,
+**Then** copied content matches the currently displayed timezone context.
+
+**Given** timezone controls are unsupported in a constrained environment,
+**When** feature detection runs,
+**Then** controls degrade gracefully to UTC/Local baseline without blocking core calculator usage.

@@ -1,16 +1,17 @@
 <script lang="ts">
-  type OperationDirection = 'add' | 'subtract';
-  type OperationUnit = 'days' | 'months' | 'years';
+  import type { OperationDirection, OperationUnit, SnapUnit } from '../lib/types';
+
+  type RowUnit = OperationUnit | SnapUnit;
 
   interface Props {
     rowId: number;
     direction: OperationDirection;
     amount: number;
-    unit: OperationUnit;
+    unit: RowUnit;
     showRemove?: boolean;
     onDirectionChange: (value: OperationDirection) => void;
     onAmountChange: (value: number) => void;
-    onUnitChange: (value: OperationUnit) => void;
+    onUnitChange: (value: RowUnit) => void;
     onRemove?: () => void;
   }
 
@@ -28,7 +29,11 @@
 
   const handleDirectionChange = (event: Event) => {
     const target = event.currentTarget as HTMLSelectElement;
-    const value = target.value === 'add' ? 'add' : 'subtract';
+    if (target.value === 'add' || target.value === 'subtract' || target.value === 'snap') {
+      onDirectionChange(target.value);
+      return;
+    }
+    const value: OperationDirection = 'subtract';
     onDirectionChange(value);
   };
 
@@ -51,7 +56,7 @@
 
   const handleUnitChange = (event: Event) => {
     const target = event.currentTarget as HTMLSelectElement;
-    const value = target.value === 'months' || target.value === 'years' ? target.value : 'days';
+    const value = target.value as RowUnit;
     onUnitChange(value);
   };
 
@@ -69,23 +74,37 @@
       data-direction-id={rowId}
       value={direction}
       oninput={handleDirectionChange}
+      onchange={handleDirectionChange}
       class="h-11 w-16 sm:w-auto rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
     >
       <option value="subtract">-</option>
       <option value="add">+</option>
+      <option value="snap">snap</option>
     </select>
 
     <label class="sr-only" for={amountId}>Amount</label>
-    <input
-      id={amountId}
-      aria-label="Amount"
-      type="text"
-      inputmode="numeric"
-      pattern="[0-9]*"
-      value={String(amount)}
-      oninput={handleAmountChange}
-      class="h-11 min-w-0 rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-    />
+    {#if direction !== 'snap'}
+      <input
+        id={amountId}
+        aria-label="Amount"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        value={String(amount)}
+        oninput={handleAmountChange}
+      onchange={handleAmountChange}
+        class="h-11 min-w-0 rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+      />
+    {:else}
+      <input
+        id={amountId}
+        aria-label="Amount"
+        type="text"
+        value="1"
+        disabled
+        class="h-11 min-w-0 rounded-md border border-gray-200 dark:border-slate-600 bg-gray-100 dark:bg-slate-800 px-2 text-sm text-gray-500 dark:text-gray-400"
+      />
+    {/if}
 
     <label class="sr-only" for={unitId}>Unit</label>
     <select
@@ -93,11 +112,22 @@
       aria-label="Unit"
       value={unit}
       oninput={handleUnitChange}
+      onchange={handleUnitChange}
       class="h-11 rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
     >
-      <option value="days">days</option>
-      <option value="months">months</option>
-      <option value="years">years</option>
+      {#if direction === 'snap'}
+        <option value="startOfDay">startOfDay</option>
+        <option value="endOfDay">endOfDay</option>
+        <option value="startOfMonth">startOfMonth</option>
+        <option value="endOfMonth">endOfMonth</option>
+      {:else}
+        <option value="days">days</option>
+        <option value="months">months</option>
+        <option value="years">years</option>
+        <option value="hours">hours</option>
+        <option value="minutes">minutes</option>
+        <option value="seconds">seconds</option>
+      {/if}
     </select>
 
     {#if showRemove}

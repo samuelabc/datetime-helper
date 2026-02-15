@@ -34,6 +34,7 @@
     type="text"
     value={value}
     oninput={handleInput}
+    onchange={handleInput}
     onfocus={handleFocus}
     onmouseup={handleMouseUp}
     onblur={onBlur}
