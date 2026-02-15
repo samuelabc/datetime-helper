@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>datetime-helper — Design Direction Mockups</title>
+<style>
+  :root {
+    --orange-50: #FFF7ED; --orange-100: #FFEDD5; --orange-200: #FED7AA;
+    --orange-300: #FDBA74; --orange-400: #FB923C; --orange-500: #F97316;
+    --orange-600: #EA580C; --orange-700: #C2410C;
+    --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
+    --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+    --green-500: #22C55E; --green-50: #F0FDF4;
+    --slate-800: #1E293B; --slate-900: #0F172A; --slate-700: #334155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--gray-100); color: var(--gray-900); }
+  .mono { font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', ui-monospace, monospace; }
+
+  /* Navigation */
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .nav h1 { font-size: 16px; font-weight: 600; color: var(--gray-900); white-space: nowrap; }
+  .nav-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .nav-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--gray-200); background: white; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gray-600); transition: all 0.15s; }
+  .nav-btn:hover { border-color: var(--orange-300); color: var(--orange-600); }
+  .nav-btn.active { background: var(--orange-500); color: white; border-color: var(--orange-500); }
+
+  /* Mockup container */
+  .mockup-container { margin-top: 64px; }
+  .mockup-section { display: none; min-height: calc(100vh - 64px); padding: 32px; }
+  .mockup-section.active { display: block; }
+  .mockup-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .mockup-subtitle { font-size: 14px; color: var(--gray-500); margin-bottom: 24px; }
+  .mockup-frame { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 1100px; margin: 0 auto; }
+
+  /* Shared component styles */
+  .copy-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--gray-200); background: white; cursor: pointer; font-size: 12px; color: var(--gray-500); transition: all 0.15s; }
+  .copy-btn:hover { border-color: var(--orange-400); color: var(--orange-600); background: var(--orange-50); }
+  .copy-btn.copied { border-color: var(--green-500); color: var(--green-500); background: var(--green-50); }
+  .copy-icon { width: 14px; height: 14px; }
+
+  /* ========================================
+     DIRECTION 1: Classic Side-by-Side
+     ======================================== */
+  .d1-app { background: white; min-height: 600px; display: flex; flex-direction: column; }
+  .d1-header { padding: 16px 24px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; }
+  .d1-logo { font-size: 18px; font-weight: 600; color: var(--gray-900); }
+  .d1-logo span { color: var(--orange-500); }
+  .d1-body { display: flex; flex: 1; }
+  .d1-input-zone { width: 40%; padding: 24px; border-right: 1px solid var(--gray-200); background: var(--gray-50); }
+  .d1-output-zone { width: 60%; padding: 24px; }
+  .d1-section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); margin-bottom: 12px; }
+  .d1-input-group { margin-bottom: 16px; }
+  .d1-input-label { font-size: 12px; font-weight: 500; color: var(--gray-500); margin-bottom: 4px; }
+  .d1-input { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 14px; background: white; }
+  .d1-input:focus { outline: none; border-color: var(--orange-400); box-shadow: 0 0 0 2px var(--orange-100); }
+  .d1-op-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .d1-op-select { padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 14px; background: white; }
+  .d1-op-num { width: 60px; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 14px; text-align: center; }
+  .d1-result-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; background: var(--gray-50); border: 1px solid var(--gray-100); }
+  .d1-result-row.hero { background: var(--orange-50); border-color: var(--orange-200); }
+  .d1-result-label { font-size: 11px; font-weight: 500; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.03em; }
+  .d1-result-value { font-size: 16px; color: var(--gray-900); margin-top: 2px; }
+  .d1-result-row.hero .d1-result-value { font-size: 28px; font-weight: 600; color: var(--orange-700); }
+  .d1-cmd-hint { margin-top: 24px; padding: 10px 14px; background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 6px; font-size: 12px; color: var(--gray-400); display: flex; align-items: center; gap: 8px; }
+  .d1-kbd { background: var(--gray-200); padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; color: var(--gray-600); }
+
+  /* ========================================
+     DIRECTION 2: Stacked Compact
+     ======================================== */
+  .d2-app { background: white; min-height: 600px; max-width: 640px; margin: 0 auto; }
+  .d2-header { padding: 20px 24px 0; text-align: center; }
+  .d2-logo { font-size: 20px; font-weight: 600; }
+  .d2-logo span { color: var(--orange-500); }
+  .d2-body { padding: 24px; }
+  .d2-calc-bar { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 20px; }
+  .d2-calc-input { border: none; background: none; font-size: 15px; flex: 1; outline: none; }
+  .d2-calc-chip { padding: 4px 10px; background: var(--orange-50); border: 1px solid var(--orange-200); border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--orange-600); white-space: nowrap; }
+  .d2-results { display: grid; gap: 8px; }
+  .d2-result { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--gray-100); border-radius: 6px; }
+  .d2-result.hero { padding: 16px 14px; background: var(--orange-50); border-color: var(--orange-200); }
+  .d2-result-left { }
+  .d2-result-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); }
+  .d2-result-value { font-size: 14px; color: var(--gray-800); margin-top: 2px; }
+  .d2-result.hero .d2-result-value { font-size: 26px; font-weight: 600; color: var(--orange-700); }
+
+  /* ========================================
+     DIRECTION 3: Card-Based
+     ======================================== */
+  .d3-app { background: var(--gray-50); min-height: 600px; padding: 32px; }
+  .d3-header { text-align: center; margin-bottom: 24px; }
+  .d3-logo { font-size: 20px; font-weight: 600; }
+  .d3-logo span { color: var(--orange-500); }
+  .d3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; margin: 0 auto; }
+  .d3-card { background: white; border-radius: 10px; padding: 20px; border: 1px solid var(--gray-200); }
+  .d3-card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); margin-bottom: 12px; }
+  .d3-card.hero { grid-column: 1 / -1; background: linear-gradient(135deg, var(--orange-50), white); border-color: var(--orange-200); text-align: center; }
+  .d3-hero-value { font-size: 36px; font-weight: 600; color: var(--orange-700); margin: 8px 0; }
+  .d3-hero-label { font-size: 12px; color: var(--gray-400); }
+  .d3-hero-tick { font-size: 10px; color: var(--orange-400); margin-top: 4px; }
+  .d3-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .d3-input { flex: 1; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 13px; }
+  .d3-format-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--gray-100); }
+  .d3-format-row:last-child { border-bottom: none; }
+  .d3-format-label { font-size: 11px; color: var(--gray-400); font-weight: 500; }
+  .d3-format-value { font-size: 13px; color: var(--gray-800); }
+
+  /* ========================================
+     DIRECTION 4: Terminal / CLI Aesthetic
+     ======================================== */
+  .d4-app { background: var(--slate-900); min-height: 600px; color: #E2E8F0; }
+  .d4-header { padding: 12px 20px; background: var(--slate-800); border-bottom: 1px solid var(--slate-700); display: flex; align-items: center; gap: 12px; }
+  .d4-dots { display: flex; gap: 6px; }
+  .d4-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .d4-dot.r { background: #EF4444; } .d4-dot.y { background: #EAB308; } .d4-dot.g { background: #22C55E; }
+  .d4-title { font-size: 13px; color: var(--gray-400); }
+  .d4-body { padding: 24px; display: flex; gap: 24px; }
+  .d4-left { width: 45%; }
+  .d4-right { width: 55%; }
+  .d4-prompt { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .d4-prompt-char { color: var(--orange-400); font-weight: 700; font-size: 16px; }
+  .d4-prompt-input { background: none; border: none; color: #E2E8F0; font-size: 15px; flex: 1; outline: none; }
+  .d4-section { margin-bottom: 16px; }
+  .d4-section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-500); margin-bottom: 8px; }
+  .d4-op-line { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+  .d4-op-keyword { color: var(--orange-400); font-weight: 500; }
+  .d4-op-value { color: #E2E8F0; }
+  .d4-result-block { padding: 12px 16px; background: rgba(249,115,22,0.08); border-left: 3px solid var(--orange-500); border-radius: 0 6px 6px 0; margin-bottom: 8px; }
+  .d4-result-block.hero { background: rgba(249,115,22,0.15); }
+  .d4-result-label { font-size: 10px; color: var(--orange-300); text-transform: uppercase; letter-spacing: 0.05em; }
+  .d4-result-value { font-size: 15px; color: #F1F5F9; margin-top: 2px; }
+  .d4-result-block.hero .d4-result-value { font-size: 28px; font-weight: 600; color: var(--orange-300); }
+  .d4-copy-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--slate-700); background: var(--slate-800); cursor: pointer; font-size: 11px; color: var(--gray-400); }
+  .d4-copy-btn:hover { border-color: var(--orange-500); color: var(--orange-400); }
+
+  /* ========================================
+     DIRECTION 5: Minimal / Zen
+     ======================================== */
+  .d5-app { background: white; min-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; }
+  .d5-logo { font-size: 14px; font-weight: 500; color: var(--gray-400); margin-bottom: 32px; letter-spacing: 0.05em; }
+  .d5-hero { text-align: center; margin-bottom: 32px; }
+  .d5-hero-value { font-size: 42px; font-weight: 600; color: var(--gray-900); letter-spacing: -0.02em; }
+  .d5-hero-label { font-size: 12px; color: var(--orange-500); font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .d5-divider { width: 48px; height: 2px; background: var(--orange-300); margin: 0 auto 24px; border-radius: 1px; }
+  .d5-calc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .d5-calc-label { font-size: 14px; color: var(--gray-400); }
+  .d5-calc-input { border: none; border-bottom: 2px solid var(--gray-200); padding: 4px 0; font-size: 16px; text-align: center; width: 60px; outline: none; transition: border-color 0.15s; }
+  .d5-calc-input:focus { border-color: var(--orange-400); }
+  .d5-formats { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 500px; }
+  .d5-format { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--gray-100); }
+  .d5-format-label { font-size: 12px; color: var(--gray-400); }
+  .d5-format-value { font-size: 14px; color: var(--gray-700); }
+
+  /* ========================================
+     DIRECTION 6: Dashboard Dense
+     ======================================== */
+  .d6-app { background: var(--gray-50); min-height: 600px; }
+  .d6-header { padding: 10px 20px; background: white; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; }
+  .d6-logo { font-size: 15px; font-weight: 600; }
+  .d6-logo span { color: var(--orange-500); }
+  .d6-ai-bar { display: flex; align-items: center; gap: 6px; padding: 5px 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 6px; font-size: 12px; color: var(--gray-400); cursor: pointer; }
+  .d6-ai-bar:hover { border-color: var(--orange-300); }
+  .d6-body { padding: 16px 20px; display: flex; gap: 16px; }
+  .d6-panel { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; }
+  .d6-panel.input { width: 35%; }
+  .d6-panel.output { width: 65%; }
+  .d6-panel-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-100); }
+  .d6-compact-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .d6-compact-label { font-size: 11px; color: var(--gray-500); width: 40px; }
+  .d6-compact-input { flex: 1; padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 4px; font-size: 13px; }
+  .d6-compact-select { padding: 5px 8px; border: 1px solid var(--gray-200); border-radius: 4px; font-size: 13px; background: white; }
+  .d6-hero-row { background: var(--orange-50); border: 1px solid var(--orange-200); border-radius: 8px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .d6-hero-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--orange-400); }
+  .d6-hero-val { font-size: 24px; font-weight: 600; color: var(--orange-700); }
+  .d6-format-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .d6-format-cell { padding: 10px 12px; background: var(--gray-50); border-radius: 6px; border: 1px solid var(--gray-100); }
+  .d6-format-cell-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); margin-bottom: 4px; }
+  .d6-format-cell-value { font-size: 13px; color: var(--gray-800); }
+  .d6-format-cell-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+
+  /* ========================================
+     Overview page
+     ======================================== */
+  .overview { padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .overview h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+  .overview p { color: var(--gray-500); margin-bottom: 24px; font-size: 15px; }
+  .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .overview-card { background: white; border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+  .overview-card:hover { border-color: var(--orange-400); box-shadow: 0 4px 16px rgba(249,115,22,0.1); transform: translateY(-2px); }
+  .overview-thumb { height: 180px; overflow: hidden; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 48px; }
+  .overview-thumb.t1 { background: white; } .overview-thumb.t2 { background: white; }
+  .overview-thumb.t3 { background: var(--gray-50); } .overview-thumb.t4 { background: var(--slate-900); }
+  .overview-thumb.t5 { background: white; } .overview-thumb.t6 { background: var(--gray-50); }
+  .overview-info { padding: 16px; }
+  .overview-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .overview-info p { font-size: 13px; color: var(--gray-500); margin: 0; }
+  .overview-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--orange-50); color: var(--orange-600); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <h1>datetime-helper — Design Directions</h1>
+  <div class="nav-buttons">
+    <button class="nav-btn active" onclick="show('overview')">Overview</button>
+    <button class="nav-btn" onclick="show('d1')">1. Classic Split</button>
+    <button class="nav-btn" onclick="show('d2')">2. Stacked</button>
+    <button class="nav-btn" onclick="show('d3')">3. Card Grid</button>
+    <button class="nav-btn" onclick="show('d4')">4. Terminal</button>
+    <button class="nav-btn" onclick="show('d5')">5. Minimal Zen</button>
+    <button class="nav-btn" onclick="show('d6')">6. Dense Dashboard</button>
+  </div>
+</nav>
+
+<div class="mockup-container">
+
+  <!-- Overview -->
+  <section id="overview" class="mockup-section active">
+    <div class="overview">
+      <h2>Design Direction Exploration</h2>
+      <p>6 visual approaches for datetime-helper. Each applies our design tokens (orange accent, light background, monospace values) with different layout strategies and visual densities. Click any card to view full mockup.</p>
+      <div class="overview-grid">
+        <div class="overview-card" onclick="show('d1')">
+          <div class="overview-thumb t1" style="font-size:14px;color:var(--gray-400);padding:20px;text-align:center;">
+            <div style="display:flex;gap:4px;height:100%;"><div style="width:40%;background:var(--gray-50);border-radius:6px;"></div><div style="width:60%;display:flex;flex-direction:column;gap:4px;"><div style="flex:1;background:var(--orange-50);border-radius:6px;"></div><div style="flex:1;background:var(--gray-50);border-radius:6px;"></div><div style="flex:1;background:var(--gray-50);border-radius:6px;"></div></div></div>
+          </div>
+          <div class="overview-info"><h3>1. Classic Side-by-Side</h3><p>40/60 split. Calculator left, results right. Clear separation of input and output zones.</p><span class="overview-tag">Recommended</span></div>
+        </div>
+        <div class="overview-card" onclick="show('d2')">
+          <div class="overview-thumb t2" style="padding:20px;">
+            <div style="width:260px;display:flex;flex-direction:column;gap:6px;"><div style="height:32px;background:var(--gray-50);border-radius:6px;border:1px solid var(--gray-200);"></div><div style="height:40px;background:var(--orange-50);border-radius:6px;"></div><div style="height:24px;background:var(--gray-50);border-radius:6px;"></div><div style="height:24px;background:var(--gray-50);border-radius:6px;"></div></div>
+          </div>
+          <div class="overview-info"><h3>2. Stacked Compact</h3><p>Single column, narrow width. Calculator bar on top, results stacked below. Crontab.guru vibes.</p></div>
+        </div>
+        <div class="overview-card" onclick="show('d3')">
+          <div class="overview-thumb t3" style="padding:20px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:260px;"><div style="grid-column:1/-1;height:50px;background:linear-gradient(135deg,var(--orange-50),white);border-radius:6px;border:1px solid var(--orange-200);"></div><div style="height:50px;background:white;border-radius:6px;border:1px solid var(--gray-200);"></div><div style="height:50px;background:white;border-radius:6px;border:1px solid var(--gray-200);"></div></div>
+          </div>
+          <div class="overview-info"><h3>3. Card Grid</h3><p>Modular card layout. Hero timestamp spans full width. Calculator and formats in separate cards.</p></div>
+        </div>
+        <div class="overview-card" onclick="show('d4')">
+          <div class="overview-thumb t4" style="padding:20px;">
+            <div style="width:260px;display:flex;flex-direction:column;gap:6px;"><div style="display:flex;gap:4px;margin-bottom:4px;"><div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div><div style="width:8px;height:8px;border-radius:50%;background:#EAB308;"></div><div style="width:8px;height:8px;border-radius:50%;background:#22C55E;"></div></div><div style="height:24px;background:rgba(249,115,22,0.15);border-left:3px solid var(--orange-500);border-radius:0 4px 4px 0;"></div><div style="height:16px;background:rgba(249,115,22,0.08);border-left:3px solid var(--orange-500);border-radius:0 4px 4px 0;"></div><div style="height:16px;background:rgba(249,115,22,0.08);border-left:3px solid var(--orange-500);border-radius:0 4px 4px 0;"></div></div>
+          </div>
+          <div class="overview-info"><h3>4. Terminal Aesthetic</h3><p>Dark background, CLI-inspired layout. Prompt-style input. Hacker vibes for developer appeal.</p></div>
+        </div>
+        <div class="overview-card" onclick="show('d5')">
+          <div class="overview-thumb t5" style="padding:20px;text-align:center;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:120px;height:24px;background:var(--gray-100);border-radius:4px;"></div><div style="width:48px;height:2px;background:var(--orange-300);border-radius:1px;"></div><div style="width:200px;height:12px;background:var(--gray-50);border-radius:3px;"></div><div style="width:200px;height:12px;background:var(--gray-50);border-radius:3px;"></div></div>
+          </div>
+          <div class="overview-info"><h3>5. Minimal Zen</h3><p>Centered, ultra-minimal. Giant hero timestamp. Maximum whitespace. Extreme restraint.</p></div>
+        </div>
+        <div class="overview-card" onclick="show('d6')">
+          <div class="overview-thumb t6" style="padding:20px;">
+            <div style="display:flex;gap:6px;width:260px;"><div style="width:35%;background:white;border-radius:6px;border:1px solid var(--gray-200);height:120px;"></div><div style="width:65%;display:flex;flex-direction:column;gap:4px;"><div style="height:40px;background:var(--orange-50);border-radius:6px;border:1px solid var(--orange-200);"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1;"><div style="background:white;border-radius:4px;border:1px solid var(--gray-200);"></div><div style="background:white;border-radius:4px;border:1px solid var(--gray-200);"></div></div></div></div>
+          </div>
+          <div class="overview-info"><h3>6. Dense Dashboard</h3><p>Compact panels. AI bar in header. 2-column format grid. Maximum information density.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 1: Classic Side-by-Side -->
+  <section id="d1" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 1: Classic Side-by-Side</div>
+      <div class="mockup-subtitle">40/60 split layout. Clear input/output zones. Our recommendation — matches the brainstorming vision directly.</div>
+      <div class="mockup-frame">
+        <div class="d1-app">
+          <div class="d1-header">
+            <div class="d1-logo">datetime<span>-helper</span></div>
+            <div class="d1-cmd-hint" style="margin:0;padding:6px 10px;">
+              <span class="d1-kbd">⌘K</span> <span style="font-size:12px;color:var(--gray-400);">AI input</span>
+            </div>
+          </div>
+          <div class="d1-body">
+            <div class="d1-input-zone">
+              <div class="d1-section-label">Calculator</div>
+              <div class="d1-input-group">
+                <div class="d1-input-label">Start Date</div>
+                <input class="d1-input mono" type="text" value="now" style="color:var(--orange-600);font-weight:500;">
+              </div>
+              <div class="d1-section-label" style="margin-top:20px;">Operations</div>
+              <div class="d1-op-row">
+                <select class="d1-op-select"><option>subtract (−)</option><option>add (+)</option></select>
+                <input class="d1-op-num mono" type="text" value="6">
+                <select class="d1-op-select"><option>months</option><option>days</option><option>years</option><option>hours</option></select>
+              </div>
+              <button style="padding:6px 14px;border-radius:6px;border:1px dashed var(--gray-300);background:none;cursor:pointer;font-size:12px;color:var(--gray-400);width:100%;">+ Add operation</button>
+              <div class="d1-cmd-hint">
+                <span class="d1-kbd">⌘K</span> Try: "6 months ago" or "start of next quarter"
+              </div>
+            </div>
+            <div class="d1-output-zone">
+              <div class="d1-section-label">Results</div>
+              <div class="d1-result-row hero">
+                <div>
+                  <div class="d1-result-label">Unix Timestamp</div>
+                  <div class="d1-result-value mono">1723939200</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d1-result-row">
+                <div>
+                  <div class="d1-result-label">ISO 8601 (UTC)</div>
+                  <div class="d1-result-value mono">2024-08-17T20:00:00.000Z</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d1-result-row">
+                <div>
+                  <div class="d1-result-label">Local Time</div>
+                  <div class="d1-result-value mono">Sat Aug 17, 2024 at 4:00:00 PM EDT</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d1-result-row">
+                <div>
+                  <div class="d1-result-label">RFC 2822</div>
+                  <div class="d1-result-value mono">Sat, 17 Aug 2024 20:00:00 +0000</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 2: Stacked Compact -->
+  <section id="d2" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 2: Stacked Compact</div>
+      <div class="mockup-subtitle">Single column, narrow. Like crontab.guru — one input bar, results below. Maximum simplicity.</div>
+      <div class="mockup-frame" style="max-width:640px;margin:0 auto;">
+        <div class="d2-app">
+          <div class="d2-header">
+            <div class="d2-logo">datetime<span>-helper</span></div>
+          </div>
+          <div class="d2-body">
+            <div class="d2-calc-bar">
+              <span class="d2-calc-chip">now</span>
+              <span style="color:var(--gray-400);">−</span>
+              <span class="d2-calc-chip">6 months</span>
+              <input class="d2-calc-input mono" placeholder="Add operation..." style="font-size:13px;">
+            </div>
+            <div class="d2-results">
+              <div class="d2-result hero">
+                <div class="d2-result-left">
+                  <div class="d2-result-label">Unix Timestamp</div>
+                  <div class="d2-result-value mono">1723939200</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d2-result">
+                <div class="d2-result-left">
+                  <div class="d2-result-label">ISO 8601</div>
+                  <div class="d2-result-value mono">2024-08-17T20:00:00.000Z</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d2-result">
+                <div class="d2-result-left">
+                  <div class="d2-result-label">Local Time</div>
+                  <div class="d2-result-value mono">Sat Aug 17, 2024 at 4:00 PM EDT</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d2-result">
+                <div class="d2-result-left">
+                  <div class="d2-result-label">RFC 2822</div>
+                  <div class="d2-result-value mono">Sat, 17 Aug 2024 20:00:00 +0000</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--gray-400);">
+              <span class="d1-kbd" style="font-size:11px;">⌘K</span> for natural language input
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 3: Card Grid -->
+  <section id="d3" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 3: Card Grid</div>
+      <div class="mockup-subtitle">Modular cards on a gray canvas. Hero timestamp spans full width. Feels organized and structured.</div>
+      <div class="mockup-frame">
+        <div class="d3-app">
+          <div class="d3-header">
+            <div class="d3-logo">datetime<span>-helper</span></div>
+          </div>
+          <div class="d3-grid">
+            <div class="d3-card hero">
+              <div class="d3-hero-label">UNIX TIMESTAMP</div>
+              <div class="d3-hero-value mono">1723939200</div>
+              <div class="d3-hero-tick">● live</div>
+              <div style="margin-top:8px;"><button class="copy-btn" onclick="demoCopy(this)" style="padding:6px 16px;font-size:13px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy timestamp</button></div>
+            </div>
+            <div class="d3-card">
+              <div class="d3-card-title">Calculator</div>
+              <div class="d3-input-row">
+                <input class="d3-input mono" value="now" style="color:var(--orange-600);">
+              </div>
+              <div class="d3-input-row">
+                <select class="d3-input" style="width:auto;"><option>− subtract</option></select>
+                <input class="d3-input mono" value="6" style="width:50px;text-align:center;">
+                <select class="d3-input" style="width:auto;"><option>months</option></select>
+              </div>
+            </div>
+            <div class="d3-card">
+              <div class="d3-card-title">All Formats</div>
+              <div class="d3-format-row">
+                <span class="d3-format-label">ISO 8601</span>
+                <span class="d3-format-value mono">2024-08-17T20:00:00.000Z</span>
+                <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+              </div>
+              <div class="d3-format-row">
+                <span class="d3-format-label">Local</span>
+                <span class="d3-format-value mono">Sat Aug 17, 2024 4:00 PM</span>
+                <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+              </div>
+              <div class="d3-format-row">
+                <span class="d3-format-label">RFC 2822</span>
+                <span class="d3-format-value mono">Sat, 17 Aug 2024 20:00:00 +0000</span>
+                <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 4: Terminal -->
+  <section id="d4" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 4: Terminal Aesthetic</div>
+      <div class="mockup-subtitle">Dark, CLI-inspired. Prompt-style input. Strong developer identity. Trade-off: conflicts with light-first decision.</div>
+      <div class="mockup-frame">
+        <div class="d4-app">
+          <div class="d4-header">
+            <div class="d4-dots"><div class="d4-dot r"></div><div class="d4-dot y"></div><div class="d4-dot g"></div></div>
+            <div class="d4-title mono">datetime-helper</div>
+          </div>
+          <div class="d4-body">
+            <div class="d4-left">
+              <div class="d4-prompt mono">
+                <span class="d4-prompt-char">❯</span>
+                <input class="d4-prompt-input mono" value="6 months ago" placeholder="describe what you need...">
+              </div>
+              <div class="d4-section">
+                <div class="d4-section-label mono">PARSED OPERATIONS</div>
+                <div class="d4-op-line mono">
+                  <span class="d4-op-keyword">START</span> <span class="d4-op-value">now</span>
+                </div>
+                <div class="d4-op-line mono">
+                  <span class="d4-op-keyword">SUB</span> <span class="d4-op-value">6 months</span>
+                </div>
+              </div>
+            </div>
+            <div class="d4-right">
+              <div class="d4-section-label mono">OUTPUT</div>
+              <div class="d4-result-block hero">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div>
+                    <div class="d4-result-label mono">UNIX</div>
+                    <div class="d4-result-value mono">1723939200</div>
+                  </div>
+                  <button class="d4-copy-btn mono" onclick="demoCopy(this)">copy</button>
+                </div>
+              </div>
+              <div class="d4-result-block">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div class="d4-result-label mono">ISO 8601</div>
+                    <div class="d4-result-value mono">2024-08-17T20:00:00.000Z</div>
+                  </div>
+                  <button class="d4-copy-btn mono" onclick="demoCopy(this)">copy</button>
+                </div>
+              </div>
+              <div class="d4-result-block">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div class="d4-result-label mono">LOCAL</div>
+                    <div class="d4-result-value mono">Sat Aug 17, 2024 4:00:00 PM EDT</div>
+                  </div>
+                  <button class="d4-copy-btn mono" onclick="demoCopy(this)">copy</button>
+                </div>
+              </div>
+              <div class="d4-result-block">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div class="d4-result-label mono">RFC 2822</div>
+                    <div class="d4-result-value mono">Sat, 17 Aug 2024 20:00:00 +0000</div>
+                  </div>
+                  <button class="d4-copy-btn mono" onclick="demoCopy(this)">copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 5: Minimal Zen -->
+  <section id="d5" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 5: Minimal Zen</div>
+      <div class="mockup-subtitle">Centered, ultra-minimal. Giant hero timestamp dominates. Maximum whitespace. Trade-off: calculator needs more space than this allows.</div>
+      <div class="mockup-frame">
+        <div class="d5-app">
+          <div class="d5-logo">DATETIME-HELPER</div>
+          <div class="d5-hero">
+            <div class="d5-hero-value mono">1723939200</div>
+            <div class="d5-hero-label">Unix Timestamp</div>
+          </div>
+          <div class="d5-divider"></div>
+          <div class="d5-calc-row">
+            <span class="d5-calc-label">from</span>
+            <input class="d5-calc-input mono" value="now" style="width:80px;color:var(--orange-600);">
+            <span class="d5-calc-label">subtract</span>
+            <input class="d5-calc-input mono" value="6" style="width:40px;">
+            <span class="d5-calc-label">months</span>
+          </div>
+          <div class="d5-formats">
+            <div class="d5-format">
+              <span class="d5-format-label">ISO 8601</span>
+              <span class="d5-format-value mono">2024-08-17T20:00:00.000Z</span>
+              <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+            </div>
+            <div class="d5-format">
+              <span class="d5-format-label">Local Time</span>
+              <span class="d5-format-value mono">Sat Aug 17, 2024 4:00 PM EDT</span>
+              <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+            </div>
+            <div class="d5-format">
+              <span class="d5-format-label">RFC 2822</span>
+              <span class="d5-format-value mono">Sat, 17 Aug 2024 20:00:00 +0000</span>
+              <button class="copy-btn" onclick="demoCopy(this)" style="margin-left:8px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Direction 6: Dense Dashboard -->
+  <section id="d6" class="mockup-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="mockup-title">Direction 6: Dense Dashboard</div>
+      <div class="mockup-subtitle">Maximum information density. Compact panels. AI bar in header. 2-column format grid packs more into less space.</div>
+      <div class="mockup-frame">
+        <div class="d6-app">
+          <div class="d6-header">
+            <div class="d6-logo">datetime<span>-helper</span></div>
+            <div class="d6-ai-bar">
+              <span class="d1-kbd" style="font-size:10px;">⌘K</span>
+              <span>Type a date expression...</span>
+            </div>
+          </div>
+          <div class="d6-body">
+            <div class="d6-panel input">
+              <div class="d6-panel-title">Calculator</div>
+              <div class="d6-compact-row">
+                <span class="d6-compact-label">Start</span>
+                <input class="d6-compact-input mono" value="now" style="color:var(--orange-600);">
+              </div>
+              <div class="d6-compact-row">
+                <span class="d6-compact-label">Op</span>
+                <select class="d6-compact-select"><option>−</option><option>+</option></select>
+                <input class="d6-compact-input mono" value="6" style="width:40px;text-align:center;">
+                <select class="d6-compact-select"><option>months</option><option>days</option><option>years</option></select>
+              </div>
+              <button style="width:100%;padding:5px;border:1px dashed var(--gray-300);border-radius:4px;background:none;cursor:pointer;font-size:11px;color:var(--gray-400);margin-top:4px;">+ Add</button>
+            </div>
+            <div class="d6-panel output">
+              <div class="d6-hero-row">
+                <div>
+                  <div class="d6-hero-label mono">UNIX TIMESTAMP</div>
+                  <div class="d6-hero-val mono">1723939200</div>
+                </div>
+                <button class="copy-btn" onclick="demoCopy(this)" style="padding:6px 14px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg> Copy</button>
+              </div>
+              <div class="d6-format-grid">
+                <div class="d6-format-cell">
+                  <div class="d6-format-cell-label">ISO 8601</div>
+                  <div class="d6-format-cell-value mono">2024-08-17T20:00:00.000Z</div>
+                  <div class="d6-format-cell-actions"><button class="copy-btn" onclick="demoCopy(this)" style="font-size:10px;padding:2px 6px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button></div>
+                </div>
+                <div class="d6-format-cell">
+                  <div class="d6-format-cell-label">Local Time</div>
+                  <div class="d6-format-cell-value mono">Sat Aug 17, 2024 4:00 PM</div>
+                  <div class="d6-format-cell-actions"><button class="copy-btn" onclick="demoCopy(this)" style="font-size:10px;padding:2px 6px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button></div>
+                </div>
+                <div class="d6-format-cell">
+                  <div class="d6-format-cell-label">RFC 2822</div>
+                  <div class="d6-format-cell-value mono">Sat, 17 Aug 2024 20:00:00 +0000</div>
+                  <div class="d6-format-cell-actions"><button class="copy-btn" onclick="demoCopy(this)" style="font-size:10px;padding:2px 6px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button></div>
+                </div>
+                <div class="d6-format-cell">
+                  <div class="d6-format-cell-label">Relative</div>
+                  <div class="d6-format-cell-value mono" style="color:var(--gray-500);">6 months ago</div>
+                  <div class="d6-format-cell-actions"><button class="copy-btn" onclick="demoCopy(this)" style="font-size:10px;padding:2px 6px;"><svg class="copy-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11"/></svg></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.mockup-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+  function demoCopy(btn) {
+    const original = btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 8.5l3.5 3.5L13 5"/></svg> Copied!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1500);
+  }
+</script>
+</body>
+</html>
