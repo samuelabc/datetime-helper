@@ -86,15 +86,15 @@ development_status:
   epic-6-retrospective: optional
 
   # Epic 7: AI Trust & Provider Flexibility (Vision)
-  epic-7: in-progress
-  7-1-ai-confidence-diff-for-parsed-operations: review
-  7-2-optional-gemini-api-key-provider-routing: review
-  7-3-ai-safety-privacy-and-request-control: review
+  epic-7: done
+  7-1-ai-confidence-diff-for-parsed-operations: done
+  7-2-optional-gemini-api-key-provider-routing: done
+  7-3-ai-safety-privacy-and-request-control: done
   epic-7-retrospective: optional
 
   # Epic 8: Reusable Platform Extensions (Vision)
-  epic-8: in-progress
-  8-1-web-component-extraction-datetime-helper: review
-  8-2-cron-job-debugger-utility: review
-  8-3-countdown-time-until-and-bookmarklet-launch: review
+  epic-8: done
+  8-1-web-component-extraction-datetime-helper: done
+  8-2-cron-job-debugger-utility: done
+  8-3-countdown-time-until-and-bookmarklet-launch: done
   epic-8-retrospective: optional
