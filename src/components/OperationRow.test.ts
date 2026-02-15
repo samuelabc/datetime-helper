@@ -19,9 +19,16 @@ function buildProps() {
 describe('OperationRow', () => {
   it('renders default controls and values', () => {
     render(OperationRow, { props: buildProps() });
-    expect((screen.getByLabelText('Direction') as HTMLSelectElement).value).toBe('subtract');
-    expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('0');
-    expect((screen.getByLabelText('Unit') as HTMLSelectElement).value).toBe('days');
+    const direction = screen.getByLabelText('Direction') as HTMLSelectElement;
+    const amount = screen.getByLabelText('Amount') as HTMLInputElement;
+    const unit = screen.getByLabelText('Unit') as HTMLSelectElement;
+
+    expect(direction.value).toBe('subtract');
+    expect(amount.value).toBe('0');
+    expect(unit.value).toBe('days');
+    expect(direction.className).toContain('h-11');
+    expect(amount.className).toContain('h-11');
+    expect(unit.className).toContain('h-11');
   });
 
   it('calls direction and unit callbacks on changes', async () => {

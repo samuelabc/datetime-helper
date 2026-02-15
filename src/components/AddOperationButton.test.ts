@@ -5,7 +5,9 @@ import AddOperationButton from './AddOperationButton.svelte';
 describe('AddOperationButton', () => {
   it('renders with expected label', () => {
     render(AddOperationButton, { props: { onClick: vi.fn() } });
-    expect(screen.getByRole('button', { name: 'Add operation' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Add operation' });
+    expect(button).toBeTruthy();
+    expect(button.className).toContain('h-11');
     expect(screen.getByText('+ Add operation')).toBeTruthy();
   });
 

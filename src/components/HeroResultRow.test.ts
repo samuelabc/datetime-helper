@@ -4,6 +4,7 @@ import HeroResultRow from './HeroResultRow.svelte';
 
 describe('HeroResultRow', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     // Default: no reduced motion
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
       matches: false,
@@ -13,6 +14,7 @@ describe('HeroResultRow', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -50,6 +52,28 @@ describe('HeroResultRow', () => {
     const { container } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
     const liveRegion = container.querySelector('[aria-live="polite"]');
     expect(liveRegion).toBeTruthy();
+  });
+
+  it('throttles polite live-region updates to 10 second intervals', async () => {
+    const { container, rerender } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    const liveRegion = container.querySelector('[aria-live="polite"]');
+    expect(liveRegion?.textContent).toContain('1708000000');
+
+    await rerender({ value: 1708000001, isLive: true });
+    await vi.advanceTimersByTimeAsync(9000);
+    expect(liveRegion?.textContent).toContain('1708000000');
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(liveRegion?.textContent).toContain('1708000001');
+  });
+
+  it('exposes semantic label/value association for assistive tech', () => {
+    const { container } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    const group = container.querySelector('[role="group"]');
+    expect(group?.getAttribute('aria-labelledby')).toBe('unix-timestamp-label');
+    expect(group?.getAttribute('aria-describedby')).toBe('unix-timestamp-value');
+    expect(container.querySelector('#unix-timestamp-label')).toBeTruthy();
+    expect(container.querySelector('#unix-timestamp-value')).toBeTruthy();
   });
 
   it('value text is selectable (has select-text class)', () => {

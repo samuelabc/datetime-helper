@@ -1,6 +1,5 @@
 <script lang="ts">
   // 1. Imports
-  import { untrack } from 'svelte';
   import CopyButton from './CopyButton.svelte';
 
   // 2. Props
@@ -9,9 +8,13 @@
     isLive: boolean;
   }
   let { value, isLive }: Props = $props();
+  const labelId = 'unix-timestamp-label';
+  const valueId = 'unix-timestamp-value';
 
   // 3. State — for screen reader throttle
   let lastAnnouncedValue = $state(0);
+  let lastAnnouncementAtMs = $state(0);
+  let pendingAnnouncement = $state<number | null>(null);
 
   // 4. Derived values
   // Whether to show the live indicator (respects prefers-reduced-motion)
@@ -23,35 +26,61 @@
 
   // 5. Effects
   // Throttle screen reader announcements to every 10 seconds (NFR11).
-  // CRITICAL: Read `value` via untrack() so this effect does NOT re-run every
-  // second when the parent ticks. Only `isLive` is a reactive dependency.
   $effect(() => {
-    // Set initial announced value without creating a dependency on `value`
-    lastAnnouncedValue = untrack(() => value);
-
-    if (!isLive) return;
-
-    const interval = setInterval(() => {
-      // Reads value inside async callback — not tracked by $effect
+    if (!isLive) {
       lastAnnouncedValue = value;
-    }, 10000);
+      pendingAnnouncement = null;
+      lastAnnouncementAtMs = Date.now();
+      return;
+    }
 
-    return () => clearInterval(interval);
+    if (lastAnnouncementAtMs === 0) {
+      lastAnnouncedValue = value;
+      lastAnnouncementAtMs = Date.now();
+      return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - lastAnnouncementAtMs;
+    if (elapsed >= 10000) {
+      lastAnnouncedValue = value;
+      pendingAnnouncement = null;
+      lastAnnouncementAtMs = now;
+      return;
+    }
+
+    pendingAnnouncement = value;
+    const timeout = setTimeout(() => {
+      if (pendingAnnouncement !== null) {
+        lastAnnouncedValue = pendingAnnouncement;
+        pendingAnnouncement = null;
+        lastAnnouncementAtMs = Date.now();
+      }
+    }, 10000 - elapsed);
+
+    return () => clearTimeout(timeout);
   });
 </script>
 
-<div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-md p-4">
+<div
+  role="group"
+  aria-labelledby={labelId}
+  aria-describedby={valueId}
+  class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-md p-4"
+>
   <div class="flex items-center justify-between">
-    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Unix Timestamp</span>
+    <span id={labelId} class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unix Timestamp</span>
     {#if showLiveIndicator}
-      <span class="flex items-center gap-1 text-xs font-medium text-orange-500 dark:text-orange-400">
-        <span class="inline-block w-2 h-2 rounded-full bg-orange-500 dark:bg-orange-400"></span>
+      <span class="flex items-center gap-1 text-xs font-medium text-orange-700 dark:text-orange-300">
+        <span class="inline-block w-2 h-2 rounded-full bg-orange-700 dark:bg-orange-300"></span>
         live
       </span>
     {/if}
   </div>
-  <div class="flex items-center justify-between gap-3 mt-1">
-    <p class="font-mono text-[2rem] leading-tight font-semibold text-gray-900 dark:text-gray-100 select-text">{value}</p>
+  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mt-1 min-w-0">
+    <p id={valueId} class="min-w-0 break-all font-mono text-[1.6rem] sm:text-[2rem] leading-tight font-semibold text-gray-900 dark:text-gray-100 select-text">
+      {value}
+    </p>
     <CopyButton value={String(value)} formatLabel="Unix Timestamp" variant="hero" />
   </div>
   <!-- Screen reader live region — throttled to max once per 10 seconds -->

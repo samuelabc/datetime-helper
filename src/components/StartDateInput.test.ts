@@ -16,7 +16,8 @@ describe('StartDateInput', () => {
 
     const input = screen.getByLabelText('Start Date Input') as HTMLInputElement;
     expect(input.value).toBe('now');
-    expect(input.className).toContain('text-orange-500');
+    expect(input.className).toContain('text-orange-800');
+    expect(input.className).toContain('h-11');
   });
 
   it('calls onInput with typed value', async () => {

@@ -5,7 +5,18 @@
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+:root {
+  color-scheme: light dark;
+}
+
 html,
 body {
   min-height: 100vh;
+}
+
+input,
+select,
+button,
+textarea {
+  color-scheme: inherit;
 }

@@ -5,7 +5,9 @@ import ResetButton from './ResetButton.svelte';
 describe('ResetButton', () => {
   it('renders reset label and button text', () => {
     render(ResetButton, { props: { onClick: vi.fn() } });
-    expect(screen.getByRole('button', { name: 'Reset calculator' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Reset calculator' });
+    expect(button).toBeTruthy();
+    expect(button.className).toContain('h-11');
     expect(screen.getByText('Reset')).toBeTruthy();
   });
 

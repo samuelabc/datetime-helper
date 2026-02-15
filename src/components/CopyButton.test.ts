@@ -100,7 +100,7 @@ describe('CopyButton', () => {
     render(CopyButton, { props: { value: '2026-02-15T14:30:00Z', formatLabel: 'ISO 8601' } });
     const button = screen.getByRole('button');
     expect(button.className).toContain('focus:ring-2');
-    expect(button.className).toContain('ring-orange-400');
+    expect(button.className).toContain('ring-orange-500');
   });
 
   it('has motion-safe transition classes for reduced-motion support', () => {

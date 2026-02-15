@@ -153,7 +153,7 @@ describe('Calculator', () => {
     await waitForWasmInit();
     const input = await getStartDateInput();
     expect(input.value).toBe('now');
-    expect(input.className).toContain('text-orange-500');
+    expect(input.className).toContain('text-orange-800');
   });
 
   it('displays all four format results after wasm init', async () => {
@@ -379,5 +379,13 @@ describe('Calculator', () => {
     await waitForWasmInit();
 
     expect(screen.getByText(/Engine error/)).toBeTruthy();
+  });
+
+  it('keeps responsive layout classes for tablet/mobile behavior', async () => {
+    const { container } = render(Calculator);
+    await waitForWasmInit();
+    const layout = container.firstElementChild as HTMLElement;
+    expect(layout.className).toContain('flex-col');
+    expect(layout.className).toContain('md:flex-row');
   });
 });

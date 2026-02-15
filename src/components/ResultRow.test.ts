@@ -50,4 +50,16 @@ describe('ResultRow', () => {
     // Default variant uses text-xs (smaller than hero text-sm)
     expect(copyButton.classList.contains('text-xs')).toBe(true);
   });
+
+  it('associates format labels and values for assistive tech', () => {
+    const { container } = render(ResultRow, { props: { formatLabel: 'ISO 8601', value: '2026-02-15T14:30:00Z' } });
+    const group = container.querySelector('[role="group"]');
+    const labelId = group?.getAttribute('aria-labelledby');
+    const valueId = group?.getAttribute('aria-describedby');
+    expect(group).toBeTruthy();
+    expect(labelId).toBeTruthy();
+    expect(valueId).toBeTruthy();
+    expect(labelId ? container.querySelector(`#${labelId}`) : null).toBeTruthy();
+    expect(valueId ? container.querySelector(`#${valueId}`) : null).toBeTruthy();
+  });
 });
