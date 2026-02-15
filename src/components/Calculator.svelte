@@ -3,22 +3,61 @@
   import { onMount } from 'svelte';
 
   // 2. Wasm bridge imports
-  import { init, calculate } from '../lib/wasmBridge';
+  import { init, calculate, validateDate } from '../lib/wasmBridge';
 
   // 3. Type imports
-  import type { FormattedResult } from '../lib/types';
+  import type { FormattedResult, Operation } from '../lib/types';
 
   // 4. Component imports
   import HeroResultRow from './HeroResultRow.svelte';
   import ResultRow from './ResultRow.svelte';
+  import StartDateInput from './StartDateInput.svelte';
+  import OperationRow from './OperationRow.svelte';
+  import AddOperationButton from './AddOperationButton.svelte';
+  import ResetButton from './ResetButton.svelte';
 
   // 2. Props (none for Calculator — root component)
 
   // 3. State
+  type OperationDirection = 'add' | 'subtract';
+  type OperationUnit = 'days' | 'months' | 'years';
+  interface OperationRowState {
+    id: number;
+    direction: OperationDirection;
+    amount: number;
+    unit: OperationUnit;
+  }
+
+  const createDefaultOperation = (id: number): OperationRowState => ({
+    id,
+    direction: 'subtract',
+    amount: 0,
+    unit: 'days',
+  });
+
   let wasmReady = $state(false);
   let error = $state<string | null>(null);
   let result = $state<FormattedResult | null>(null);
-  let isLive = $state(true);
+  let startDateInput = $state('now');
+  let explicitStartDate = $state<string | null>(null);
+  let isNowMode = $state(true);
+  let startDateError = $state<string | null>(null);
+  let nextOperationId = $state(2);
+  let operations = $state<OperationRowState[]>([createDefaultOperation(1)]);
+
+  let hasNonZeroOperation = $derived(operations.some((operation) => operation.amount > 0));
+  let isLive = $derived(isNowMode && !hasNonZeroOperation);
+  let showReset = $derived.by(() => {
+    const firstOperation = operations[0];
+    if (!firstOperation) return true;
+    return (
+      !isNowMode ||
+      operations.length > 1 ||
+      firstOperation.direction !== 'subtract' ||
+      firstOperation.amount !== 0 ||
+      firstOperation.unit !== 'days'
+    );
+  });
 
   // 4. Derived values (none yet)
 
@@ -33,6 +72,28 @@
     }
   });
 
+  const toWasmOperations = (rows: OperationRowState[]): Operation[] =>
+    rows.map((row) => ({
+      type: row.direction,
+      value: row.amount,
+      unit: row.unit,
+    }));
+
+  const canCalculate = () => isNowMode || (!startDateError && explicitStartDate !== null);
+
+  const recalculate = () => {
+    if (!wasmReady || !canCalculate()) return;
+
+    try {
+      const startDate = isNowMode ? new Date().toISOString() : (explicitStartDate as string);
+      result = calculate(startDate, toWasmOperations(operations));
+      error = null;
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Calculation failed';
+      console.error('Calculation failed:', e);
+    }
+  };
+
   // Live-tick effect — separate from onMount init
   $effect(() => {
     if (!isLive || !wasmReady) return;
@@ -42,8 +103,8 @@
 
     const tick = () => {
       try {
-        const now = new Date().toISOString();
-        result = calculate(now, []);
+        result = calculate(new Date().toISOString(), toWasmOperations(operations));
+        error = null;
       } catch (e) {
         error = e instanceof Error ? e.message : 'Calculation failed';
         console.error('Live tick failed:', e);
@@ -60,7 +121,80 @@
     return () => clearInterval(interval);
   });
 
-  // 6. Event handlers (none yet)
+  // 6. Event handlers
+  const handleStartDateInput = (value: string) => {
+    startDateInput = value;
+    const trimmed = value.trim();
+
+    if (trimmed.length === 0) {
+      isNowMode = false;
+      startDateError = null;
+      explicitStartDate = null;
+      return;
+    }
+
+    if (!wasmReady) return;
+
+    let validation;
+    try {
+      validation = validateDate(trimmed);
+    } catch (e) {
+      isNowMode = false;
+      startDateError = e instanceof Error ? e.message : 'Date validation unavailable';
+      return;
+    }
+    if (!validation.valid) {
+      isNowMode = false;
+      startDateError = validation.error ?? 'Invalid date';
+      return;
+    }
+
+    isNowMode = false;
+    startDateError = null;
+    explicitStartDate = validation.normalized ?? trimmed;
+    recalculate();
+  };
+
+  const handleStartDateBlur = () => {
+    if (startDateInput.trim().length > 0) return;
+
+    startDateInput = 'now';
+    explicitStartDate = null;
+    startDateError = null;
+    isNowMode = true;
+    recalculate();
+  };
+
+  const updateOperation = (id: number, updater: (operation: OperationRowState) => OperationRowState) => {
+    operations = operations.map((operation) => (operation.id === id ? updater(operation) : operation));
+    recalculate();
+  };
+
+  const handleAddOperation = async () => {
+    const newId = nextOperationId;
+    nextOperationId += 1;
+    operations = [...operations, createDefaultOperation(newId)];
+    recalculate();
+    await Promise.resolve();
+    document.querySelector<HTMLSelectElement>(`[data-direction-id="${newId}"]`)?.focus();
+  };
+
+  const handleRemoveOperation = (id: number) => {
+    if (operations.length <= 1) return;
+    operations = operations.filter((operation) => operation.id !== id);
+    recalculate();
+  };
+
+  const handleReset = () => {
+    isNowMode = true;
+    startDateInput = 'now';
+    explicitStartDate = null;
+    startDateError = null;
+    const resetId = nextOperationId;
+    nextOperationId += 1;
+    operations = [createDefaultOperation(resetId)];
+    recalculate();
+  };
 </script>
 
 <div class="flex flex-col md:flex-row gap-6">
@@ -69,15 +203,37 @@
     <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Input</p>
     <div class="space-y-4">
       <div>
-        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
-        <div class="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md p-3 text-gray-400 dark:text-gray-500 text-sm">
-          Coming in Story 2.1...
-        </div>
+        <p class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start Date</p>
+        <StartDateInput
+          value={startDateInput}
+          error={startDateError}
+          isNow={isNowMode}
+          onInput={handleStartDateInput}
+          onBlur={handleStartDateBlur}
+        />
       </div>
       <div>
-        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Operations</label>
-        <div class="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md p-3 text-gray-400 dark:text-gray-500 text-sm">
-          Coming in Story 2.2...
+        <p class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Operations</p>
+        <div class="space-y-2">
+          {#each operations as operation (operation.id)}
+            <OperationRow
+              rowId={operation.id}
+              direction={operation.direction}
+              amount={operation.amount}
+              unit={operation.unit}
+              showRemove={operations.length > 1}
+              onDirectionChange={(value) => updateOperation(operation.id, (op) => ({ ...op, direction: value }))}
+              onAmountChange={(value) => updateOperation(operation.id, (op) => ({ ...op, amount: value }))}
+              onUnitChange={(value) => updateOperation(operation.id, (op) => ({ ...op, unit: value }))}
+              onRemove={() => handleRemoveOperation(operation.id)}
+            />
+          {/each}
+          <div class="flex items-center justify-between">
+            <AddOperationButton onClick={handleAddOperation} />
+            {#if showReset}
+              <ResetButton onClick={handleReset} />
+            {/if}
+          </div>
         </div>
       </div>
     </div>
