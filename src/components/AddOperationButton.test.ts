@@ -5,16 +5,16 @@ import AddOperationButton from './AddOperationButton.svelte';
 describe('AddOperationButton', () => {
   it('renders with expected label', () => {
     render(AddOperationButton, { props: { onClick: vi.fn() } });
-    const button = screen.getByRole('button', { name: 'Add operation' });
+    const button = screen.getByRole('button', { name: 'Add step' });
     expect(button).toBeTruthy();
     expect(button.className).toContain('h-11');
-    expect(screen.getByText('+ Add operation')).toBeTruthy();
+    expect(screen.getByText('+ Add step')).toBeTruthy();
   });
 
   it('calls onClick callback when pressed', async () => {
     const onClick = vi.fn();
     render(AddOperationButton, { props: { onClick } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Add operation' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
