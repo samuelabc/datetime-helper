@@ -17,9 +17,6 @@ vi.mock('../lib/wasmBridge', () => ({
   calculate: calculateMock,
   validateDate: validateDateMock,
 }));
-vi.mock('../lib/aiAvailability', () => ({
-  detectAiAvailability: vi.fn(() => ({ state: 'ready' })),
-}));
 vi.mock('../lib/aiProviderRouter', () => ({
   routeAiParseRequest: routeAiParseRequestMock,
   AiProviderError: class extends Error {
@@ -118,6 +115,11 @@ async function waitForWasmInit() {
   await tick();
   await vi.advanceTimersByTimeAsync(0);
   await tick();
+  const editButtons = screen.queryAllByRole('button', { name: 'Edit steps' });
+  if (editButtons[0]) {
+    await fireEvent.click(editButtons[0]);
+    await tick();
+  }
 }
 
 describe('Calculator', () => {
@@ -134,7 +136,7 @@ describe('Calculator', () => {
     calculateMock.mockClear();
     validateDateMock.mockClear();
     routeAiParseRequestMock.mockResolvedValue({
-      source: 'local',
+      source: 'gemini',
       parsed: {
         startDateIntent: { kind: 'now' },
         operations: [{ direction: 'subtract', amount: 6, unit: 'months' }],
@@ -144,6 +146,9 @@ describe('Calculator', () => {
         },
       },
     });
+    if (typeof Intl.supportedValuesOf === 'function') {
+      vi.spyOn(Intl, 'supportedValuesOf').mockReturnValue(['America/New_York']);
+    }
   });
 
   afterEach(() => {
@@ -165,10 +170,10 @@ describe('Calculator', () => {
     expect(resultsSection).toBeTruthy();
   });
 
-  it('displays Unix Timestamp label in hero row after wasm init', async () => {
+  it('displays Unix Timestamp (ms) label in hero row after wasm init', async () => {
     render(Calculator);
     await waitForWasmInit();
-    expect(screen.getByText('Unix Timestamp')).toBeTruthy();
+    expect(screen.getByText('Unix Timestamp (ms)')).toBeTruthy();
   });
 
   it('shows now as the default start-date value in orange mode', async () => {
@@ -176,16 +181,33 @@ describe('Calculator', () => {
     await waitForWasmInit();
     const input = await getStartDateInput();
     expect(input.value).toBe('now');
-    expect(input.className).toContain('text-orange-800');
+    expect(input.className).toContain('ui-input-warm');
   });
 
   it('displays all four format results after wasm init', async () => {
     render(Calculator);
     await waitForWasmInit();
-    expect(screen.getByText('1739634600')).toBeTruthy();
+    expect(screen.getByText('1739634600000')).toBeTruthy();
     expect(screen.getByText('ISO 8601')).toBeTruthy();
     expect(screen.getByText('RFC 2822')).toBeTruthy();
-    expect(screen.getByText('Local Time (UTC)')).toBeTruthy();
+    expect(screen.getByText('UTC Time')).toBeTruthy();
+  });
+
+  it('updates RFC 2822 output when timezone mode changes', async () => {
+    render(Calculator);
+    await waitForWasmInit();
+    expect(screen.getByText('Sun, 15 Feb 2026 14:30:00 +0000')).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Timezone mode IANA' }));
+    await tick();
+
+    const ianaTimezone = screen.getByLabelText('IANA timezone') as HTMLInputElement;
+    await fireEvent.focus(ianaTimezone);
+    await fireEvent.input(ianaTimezone, { target: { value: 'new_york' } });
+    await fireEvent.keyDown(ianaTimezone, { key: 'Enter' });
+    await tick();
+
+    expect(screen.getByText('Sun, 15 Feb 2026 09:30:00 -0500')).toBeTruthy();
   });
 
   it('recalculates immediately when operation fields change', async () => {
@@ -265,6 +287,21 @@ describe('Calculator', () => {
     expect(screen.getByText('1773532800')).toBeTruthy();
   });
 
+  it('accepts typed now without validation error', async () => {
+    render(Calculator);
+    await waitForWasmInit();
+    const input = await getStartDateInput();
+    await fireEvent.input(input, { target: { value: '2026-13-01' } });
+    await tick();
+    expect(screen.getByText('Invalid month')).toBeTruthy();
+
+    await fireEvent.input(input, { target: { value: 'now' } });
+    await tick();
+    expect(screen.queryByText('Invalid month')).toBeNull();
+    expect(input.value).toBe('now');
+    expect(screen.getByText('live')).toBeTruthy();
+  });
+
   it('reverts to now on empty blur and restores live mode', async () => {
     render(Calculator);
     await waitForWasmInit();
@@ -291,6 +328,19 @@ describe('Calculator', () => {
     expect(screen.getByText('1835395200')).toBeTruthy();
   });
 
+  it('shows exact millisecond unix value for reverse decode millisecond input', async () => {
+    render(Calculator);
+    await waitForWasmInit();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Use reverse decode mode' }));
+    const reverseInput = screen.getByLabelText('Reverse decode input') as HTMLInputElement;
+    await fireEvent.input(reverseInput, { target: { value: '1739634600123' } });
+    await tick();
+
+    expect(screen.getByText('1739634600123')).toBeTruthy();
+    expect(screen.getByText('1739634600')).toBeTruthy();
+  });
+
   it('handles month-boundary arithmetic for 2026-01-31 + 1 month', async () => {
     render(Calculator);
     await waitForWasmInit();
@@ -315,10 +365,10 @@ describe('Calculator', () => {
     await waitForWasmInit();
     expect(screen.getAllByLabelText('Direction').length).toBe(1);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add operation' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
     await tick();
     expect(screen.getAllByLabelText('Direction').length).toBe(2);
-    expect(document.activeElement?.getAttribute('aria-label')).toBe('Direction');
+    expect(document.activeElement?.getAttribute('data-direction-id')).toBe('2');
 
     await fireEvent.click(screen.getAllByRole('button', { name: 'Remove operation' })[0]);
     await tick();
@@ -341,7 +391,7 @@ describe('Calculator', () => {
     await fireEvent.input(amountRows[0], { target: { value: '1' } });
     await fireEvent.input(unitRows[0], { target: { value: 'months' } });
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add operation' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
     await tick();
 
     const amountRowsAfterAdd = screen.getAllByLabelText('Amount') as HTMLInputElement[];
@@ -358,21 +408,26 @@ describe('Calculator', () => {
   it('shows reset only when state differs from defaults and fully resets calculator', async () => {
     render(Calculator);
     await waitForWasmInit();
-    expect(screen.queryByRole('button', { name: 'Reset calculator' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reset steps' })).toBeNull();
 
     const amount = screen.getByLabelText('Amount') as HTMLInputElement;
     await fireEvent.input(amount, { target: { value: '2' } });
     await tick();
-    expect(screen.getByRole('button', { name: 'Reset calculator' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reset steps' })).toBeTruthy();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Reset calculator' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Reset steps' }));
     await tick();
+    const editButtonsAfterReset = screen.queryAllByRole('button', { name: 'Edit steps' });
+    if (editButtonsAfterReset[0]) {
+      await fireEvent.click(editButtonsAfterReset[0]);
+      await tick();
+    }
     const input = await getStartDateInput();
     expect(input.value).toBe('now');
     expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toBe('0');
     expect(screen.getAllByLabelText('Direction').length).toBe(1);
     expect(screen.getByText('live')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Reset calculator' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reset steps' })).toBeNull();
   });
 
   it('does not tick when prefers-reduced-motion is active', async () => {
@@ -417,7 +472,7 @@ describe('Calculator', () => {
     render(Calculator);
     await waitForWasmInit();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Open command palette/ }));
     const input = screen.getByLabelText('Command palette prompt');
     await fireEvent.input(input, { target: { value: '6 months ago from now' } });
     await fireEvent.submit(input.closest('form') as HTMLFormElement);

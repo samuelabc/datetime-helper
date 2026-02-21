@@ -5,6 +5,8 @@
 export interface FormattedResult {
   /** Unix timestamp in seconds (can be negative for pre-epoch dates) */
   unixTimestamp: number;
+  /** Unix timestamp in milliseconds when available (exact in reverse decode mode) */
+  unixTimestampMs?: number;
   /** ISO 8601 / RFC 3339 formatted string (e.g., "2024-07-11T00:00:00Z") */
   iso8601: string;
   /** RFC 2822 formatted string (e.g., "Thu, 11 Jul 2024 00:00:00 +0000") */

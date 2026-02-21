@@ -21,11 +21,12 @@
   <input
     id="gemini-key"
     type="password"
+    autocomplete="new-password"
     value={keyInput}
     oninput={(event) => {
       keyInput = (event.currentTarget as HTMLInputElement).value;
     }}
-    class="h-9 w-full rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 text-xs"
+    class="ui-input ui-input-sm h-9"
     placeholder="AIza..."
   />
   <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Stored locally on this device only.</p>

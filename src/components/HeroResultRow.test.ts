@@ -18,57 +18,65 @@ describe('HeroResultRow', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the Unix Timestamp label', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
-    expect(screen.getByText('Unix Timestamp')).toBeTruthy();
+  it('renders the Unix Timestamp (ms) label', () => {
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: false } });
+    expect(screen.getByText('Unix Timestamp (ms)')).toBeTruthy();
   });
 
-  it('renders the value in monospace with correct styling', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
-    const valueEl = screen.getByText('1708000000');
+  it('renders millisecond value in monospace with correct styling', () => {
+    render(HeroResultRow, { props: { valueMs: 1708000000123, isLive: false } });
+    const valueEl = screen.getByText('1708000000123');
     expect(valueEl).toBeTruthy();
     expect(valueEl.classList.contains('font-mono')).toBe(true);
     expect(valueEl.classList.contains('font-semibold')).toBe(true);
   });
 
+  it('renders derived seconds row from millisecond value', () => {
+    render(HeroResultRow, { props: { valueMs: 1708000000123, isLive: false } });
+    expect(screen.getByText('Seconds')).toBeTruthy();
+    const valueEl = screen.getByText('1708000000123');
+    expect(valueEl).toBeTruthy();
+    expect(screen.getByText('1708000000')).toBeTruthy();
+  });
+
   it('displays "live" indicator when isLive is true', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: true } });
     expect(screen.getByText('live')).toBeTruthy();
   });
 
   it('hides "live" indicator when isLive is false', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: false } });
     expect(screen.queryByText('live')).toBeNull();
   });
 
   it('has orange-50 background styling on the container', () => {
-    const { container } = render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
+    const { container } = render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: false } });
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper.classList.contains('bg-orange-50')).toBe(true);
     expect(wrapper.classList.contains('border-orange-200')).toBe(true);
   });
 
   it('has an aria-live polite region for screen readers', () => {
-    const { container } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    const { container } = render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: true } });
     const liveRegion = container.querySelector('[aria-live="polite"]');
     expect(liveRegion).toBeTruthy();
   });
 
   it('throttles polite live-region updates to 10 second intervals', async () => {
-    const { container, rerender } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    const { container, rerender } = render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: true } });
     const liveRegion = container.querySelector('[aria-live="polite"]');
-    expect(liveRegion?.textContent).toContain('1708000000');
+    expect(liveRegion?.textContent).toContain('1708000000000');
 
-    await rerender({ value: 1708000001, isLive: true });
+    await rerender({ valueMs: 1708000001001, isLive: true });
     await vi.advanceTimersByTimeAsync(9000);
-    expect(liveRegion?.textContent).toContain('1708000000');
+    expect(liveRegion?.textContent).toContain('1708000000000');
 
     await vi.advanceTimersByTimeAsync(1000);
-    expect(liveRegion?.textContent).toContain('1708000001');
+    expect(liveRegion?.textContent).toContain('1708000001001');
   });
 
   it('exposes semantic label/value association for assistive tech', () => {
-    const { container } = render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    const { container } = render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: true } });
     const group = container.querySelector('[role="group"]');
     expect(group?.getAttribute('aria-labelledby')).toBe('unix-timestamp-label');
     expect(group?.getAttribute('aria-describedby')).toBe('unix-timestamp-value');
@@ -77,8 +85,8 @@ describe('HeroResultRow', () => {
   });
 
   it('value text is selectable (has select-text class)', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
-    const valueEl = screen.getByText('1708000000');
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: false } });
+    const valueEl = screen.getByText('1708000000000');
     expect(valueEl.classList.contains('select-text')).toBe(true);
   });
 
@@ -88,16 +96,18 @@ describe('HeroResultRow', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }));
-    render(HeroResultRow, { props: { value: 1708000000, isLive: true } });
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: true } });
     // When reduced motion is active, live indicator should be hidden
     expect(screen.queryByText('live')).toBeNull();
   });
 
-  it('renders a CopyButton with hero variant and correct aria-label', () => {
-    render(HeroResultRow, { props: { value: 1708000000, isLive: false } });
-    const copyButton = screen.getByRole('button', { name: /Copy Unix Timestamp value/ });
-    expect(copyButton).toBeTruthy();
+  it('renders dedicated copy actions for milliseconds and seconds', () => {
+    render(HeroResultRow, { props: { valueMs: 1708000000000, isLive: false } });
+    const copyMsButton = screen.getByRole('button', { name: /Copy Unix Timestamp \(milliseconds\) value/ });
+    const copySecondsButton = screen.getByRole('button', { name: /Copy Unix Timestamp \(seconds\) value/ });
+    expect(copyMsButton).toBeTruthy();
+    expect(copySecondsButton).toBeTruthy();
     // Hero variant uses text-sm (larger than default text-xs)
-    expect(copyButton.classList.contains('text-sm')).toBe(true);
+    expect(copyMsButton.classList.contains('text-sm')).toBe(true);
   });
 });

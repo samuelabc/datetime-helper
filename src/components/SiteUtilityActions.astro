@@ -1,0 +1,15 @@
+---
+import ThemeToggle from "./ThemeToggle.astro";
+import GitHubLink from "./GitHubLink.astro";
+
+interface Props {
+  showRepoName?: boolean;
+}
+
+const { showRepoName = true } = Astro.props;
+---
+
+<div class="flex items-center gap-2">
+  <ThemeToggle />
+  <GitHubLink showRepoName={showRepoName} />
+</div>

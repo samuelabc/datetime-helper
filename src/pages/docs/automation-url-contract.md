@@ -94,8 +94,3 @@ Valid units:
 3. Map each operation to one `o{index}` token.
 4. Validate against allowed directions/units and amount bounds.
 5. Emit full URL and store as reproducible artifact.
-
-Related docs:
-
-- `/docs/developer-workflows`
-- `/docs/ai-palette-usage`

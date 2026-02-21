@@ -1,10 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Calculator from '../components/Calculator.svelte';
+import SiteUtilityActions from '../components/SiteUtilityActions.astro';
 ---
 
 <Layout>
-  <main class="max-w-[960px] mx-auto px-4 md:px-6 lg:px-8 py-6">
+  <main id="main-content" tabindex="-1" class="max-w-[960px] mx-auto px-4 md:px-6 lg:px-8 py-6">
     <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-3">
@@ -36,45 +37,36 @@ import Calculator from '../components/Calculator.svelte';
         <p class="mt-1 font-serif text-base sm:text-lg text-gray-700 dark:text-gray-300">
           Unix timestamp calculator and date math toolkit.
         </p>
-        <nav aria-label="Documentation links" class="mt-2 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+        <nav aria-label="Documentation links" class="mt-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm">
           <a
             href="/docs"
-            class="inline-flex items-center rounded-full border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-2.5 py-1 text-orange-800 dark:text-orange-200 hover:border-orange-400 dark:hover:border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="inline-flex items-center text-gray-700 dark:text-gray-300 underline decoration-gray-300 dark:decoration-slate-600 underline-offset-2 hover:text-orange-700 dark:hover:text-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-sm"
           >
             Docs
           </a>
           <a
             href="/docs/developer-workflows"
-            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="inline-flex items-center text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-slate-600 underline-offset-2 hover:text-gray-900 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-sm"
           >
             Developer workflows
           </a>
           <a
             href="/docs/automation-url-contract"
-            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="inline-flex items-center text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-slate-600 underline-offset-2 hover:text-gray-900 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-sm"
           >
             Automation contract
           </a>
           <a
             href="/docs/ai-palette-usage"
-            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="inline-flex items-center text-gray-600 dark:text-gray-400 underline decoration-gray-300 dark:decoration-slate-600 underline-offset-2 hover:text-gray-900 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-sm"
           >
             AI palette usage
           </a>
         </nav>
       </div>
-      <a
-        href="https://github.com/samuelabc/datetime-helper"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="View public datetime-helper repository on GitHub"
-        class="group inline-flex items-center gap-2 self-start rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 fill-current">
-          <path d="M12 1.8a10.2 10.2 0 0 0-3.22 19.88c.51.1.7-.22.7-.49l-.01-1.73c-2.84.62-3.44-1.2-3.44-1.2-.47-1.2-1.14-1.51-1.14-1.51-.93-.63.07-.62.07-.62 1.03.07 1.56 1.05 1.56 1.05.91 1.55 2.4 1.1 2.98.84.09-.66.36-1.1.65-1.35-2.27-.25-4.65-1.13-4.65-5.03 0-1.11.39-2.02 1.05-2.73-.11-.26-.46-1.29.1-2.69 0 0 .85-.27 2.8 1.04a9.71 9.71 0 0 1 5.1 0c1.95-1.31 2.8-1.04 2.8-1.04.56 1.4.2 2.43.1 2.69.65.71 1.05 1.62 1.05 2.73 0 3.91-2.38 4.78-4.66 5.02.36.32.7.95.7 1.93l-.01 2.86c0 .27.18.6.71.49A10.2 10.2 0 0 0 12 1.8Z" />
-        </svg>
-        <span class="font-mono text-xs sm:text-sm">samuelabc/datetime-helper</span>
-      </a>
+      <div class="self-start">
+        <SiteUtilityActions />
+      </div>
     </header>
     <Calculator client:load />
   </main>

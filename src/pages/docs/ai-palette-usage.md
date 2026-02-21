@@ -67,8 +67,3 @@ For production-oriented use:
 1. Use explicit start dates when possible
 2. Verify each applied operation row
 3. Copy share link as reproducible evidence
-
-Related docs:
-
-- `/docs/developer-workflows`
-- `/docs/automation-url-contract`

@@ -8,21 +8,37 @@ describe("TimezoneControls", () => {
     const onIanaTimeZoneChange = vi.fn();
     render(TimezoneControls, {
       props: {
-        mode: "iana",
+        mode: "utc",
         ianaEnabled: true,
         ianaTimeZone: "America/New_York",
-        availableTimezones: ["America/New_York", "UTC"],
+        availableTimezones: ["America/New_York", "UTC", "Asia/Singapore"],
         onModeChange,
         onIanaTimeZoneChange,
       },
     });
 
-    const mode = screen.getByLabelText("Timezone mode");
-    await fireEvent.input(mode, { target: { value: "utc" } });
-    expect(onModeChange).toHaveBeenCalledWith("utc");
+    await fireEvent.click(screen.getByRole("button", { name: "Timezone mode IANA" }));
+    expect(onModeChange).toHaveBeenCalledWith("iana");
+  });
 
-    const iana = screen.getByLabelText("IANA timezone");
-    await fireEvent.input(iana, { target: { value: "UTC" } });
-    expect(onIanaTimeZoneChange).toHaveBeenCalledWith("UTC");
+  it("filters and selects iana timezone from combobox", async () => {
+    const onModeChange = vi.fn();
+    const onIanaTimeZoneChange = vi.fn();
+    render(TimezoneControls, {
+      props: {
+        mode: "iana",
+        ianaEnabled: true,
+        ianaTimeZone: "America/New_York",
+        availableTimezones: ["America/New_York", "UTC", "Asia/Singapore"],
+        onModeChange,
+        onIanaTimeZoneChange,
+      },
+    });
+
+    const ianaInput = screen.getByLabelText("IANA timezone");
+    await fireEvent.focus(ianaInput);
+    await fireEvent.input(ianaInput, { target: { value: "sing" } });
+    await fireEvent.keyDown(ianaInput, { key: "Enter" });
+    expect(onIanaTimeZoneChange).toHaveBeenCalledWith("Asia/Singapore");
   });
 });

@@ -1,5 +1,5 @@
 export interface AiTelemetryEvent {
-  source: "local" | "gemini";
+  source: "gemini";
   status: "success" | "error" | "cancelled";
   durationMs: number;
 }

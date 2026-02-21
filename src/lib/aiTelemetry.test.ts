@@ -7,18 +7,18 @@ describe("aiTelemetry", () => {
   });
 
   it("stores metadata-only events when enabled", () => {
-    emitAiTelemetry({ source: "local", status: "success", durationMs: 50 }, true);
-    expect(getAiTelemetryEvents()).toEqual([{ source: "local", status: "success", durationMs: 50 }]);
+    emitAiTelemetry({ source: "gemini", status: "success", durationMs: 50 }, true);
+    expect(getAiTelemetryEvents()).toEqual([{ source: "gemini", status: "success", durationMs: 50 }]);
   });
 
   it("does not record events when disabled", () => {
-    emitAiTelemetry({ source: "local", status: "success", durationMs: 50 }, false);
+    emitAiTelemetry({ source: "gemini", status: "success", durationMs: 50 }, false);
     expect(getAiTelemetryEvents()).toEqual([]);
   });
 
   it("caps telemetry buffer size to prevent unbounded growth", () => {
     for (let i = 0; i < 205; i += 1) {
-      emitAiTelemetry({ source: "local", status: "success", durationMs: i }, true);
+      emitAiTelemetry({ source: "gemini", status: "success", durationMs: i }, true);
     }
     const events = getAiTelemetryEvents();
     expect(events.length).toBe(200);

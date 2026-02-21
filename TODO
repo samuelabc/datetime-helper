@@ -1,8 +1,8 @@
 - [x] github link
-- [ ] architecture diagram
+- [x] architecture diagram
 - [ ] ai agent use case
-    - [ ] documentation
+    - [x] documentation
     - [ ] skills
-- [ ] introduction point for ai agent use case
-- [ ] logo
+- [x] tutorial for ai agent use case
+- [x] logo
 - [ ] integrete gemini apikey

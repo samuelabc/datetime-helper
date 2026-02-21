@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CustomSelect from "./CustomSelect.svelte";
   import type { CronReferenceTimezone, CronRunInstant } from "../lib/cronDebugger";
 
   interface Props {
@@ -14,6 +15,11 @@
   }
 
   let { open, expression, timezone, error, runs, onToggle, onExpressionInput, onTimezoneInput, onUseRun }: Props = $props();
+
+  const timezoneOptions = [
+    { value: "UTC", label: "UTC" },
+    { value: "LOCAL", label: "Local" },
+  ] as const;
 
   async function copyValue(value: string): Promise<void> {
     try {
@@ -41,22 +47,24 @@
     <div class="mt-2 space-y-2">
       <input
         aria-label="Cron expression"
+        autocomplete="off"
         value={expression}
         oninput={(event) => onExpressionInput((event.currentTarget as HTMLInputElement).value)}
-        class="h-9 w-full rounded border border-gray-200 dark:border-slate-600 px-2 text-xs"
+        class="ui-input ui-input-sm h-9"
         placeholder="*/15 * * * *"
       />
       <label class="block text-xs text-gray-600 dark:text-gray-300">
         Reference timezone
-        <select
-          aria-label="Cron timezone"
-          class="mt-1 h-8 w-full rounded border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-2"
-          value={timezone}
-          onchange={(event) => onTimezoneInput((event.currentTarget as HTMLSelectElement).value as CronReferenceTimezone)}
-        >
-          <option value="UTC">UTC</option>
-          <option value="LOCAL">Local</option>
-        </select>
+        <div class="ui-select-shell mt-1">
+          <CustomSelect
+            ariaLabel="Cron timezone"
+            value={timezone}
+            options={timezoneOptions.map((option) => ({ ...option }))}
+            sizeClass="ui-select-sm"
+            heightClass="h-9"
+            onChange={(value) => onTimezoneInput(value as CronReferenceTimezone)}
+          />
+        </div>
       </label>
       {#if error}
         <p class="text-xs text-red-600 dark:text-red-300">{error}</p>

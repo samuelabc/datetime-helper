@@ -4,10 +4,20 @@ test.describe('keyboard and screen-reader support', () => {
   test('tab order reaches core controls in logical sequence', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('heading', { name: 'datetime-helper' }).click();
-
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Use calculator mode' })).toBeFocused();
+    const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+    await expect(skipLink).toBeFocused();
+    await skipLink.press('Enter');
+
+    const calculateModeButton = page.getByRole('button', { name: 'Use calculator mode' });
+    for (let i = 0; i < 10; i += 1) {
+      const focusedCalculate = await page.evaluate(
+        () => document.activeElement?.getAttribute('aria-label') === 'Use calculator mode',
+      );
+      if (focusedCalculate) break;
+      await page.keyboard.press('Tab');
+    }
+    await expect(calculateModeButton).toBeFocused();
 
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Use reverse decode mode' })).toBeFocused();
@@ -31,10 +41,10 @@ test.describe('keyboard and screen-reader support', () => {
     await expect(page.getByLabel('Timezone mode')).toBeFocused();
 
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Open command palette' })).toBeFocused();
+    await expect(page.getByRole('button', { name: /Open command palette/ })).toBeFocused();
 
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Copy share link' })).toBeFocused();
+    await expect(page.locator('summary', { hasText: 'More tools' })).toBeFocused();
   });
 
   test('uses polite and assertive live regions', async ({ page }) => {
@@ -50,7 +60,7 @@ test.describe('keyboard and screen-reader support', () => {
   test('opens and closes command palette with focus return', async ({ page }) => {
     await page.goto('/');
 
-    const launcher = page.getByRole('button', { name: 'Open command palette' });
+    const launcher = page.getByRole('button', { name: /Open command palette/ });
     await launcher.focus();
     await expect(launcher).toBeFocused();
 
@@ -58,7 +68,7 @@ test.describe('keyboard and screen-reader support', () => {
     await launcher.click();
     await expect(dialog).toBeVisible();
     await expect(page.getByLabel('Command palette prompt')).toBeFocused();
-    await expect(dialog.getByText(/AI unavailable|AI ready/)).toBeVisible();
+    await expect(dialog.getByText('Describe your datetime intent')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();

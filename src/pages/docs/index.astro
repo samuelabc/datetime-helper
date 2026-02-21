@@ -1,10 +1,15 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import SiteUtilityActions from "../../components/SiteUtilityActions.astro";
+import { DOC_GUIDES } from "../../lib/docsNav";
 ---
 
 <Layout title="Documentation | datetime-helper" description="Documentation for developers, automation users, and AI-assisted workflows.">
-  <main class="max-w-[960px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
+  <main id="main-content" tabindex="-1" class="max-w-[960px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
     <header class="mb-6 rounded-2xl border border-gray-200/80 dark:border-slate-700/80 bg-gradient-to-b from-orange-50/80 via-white to-white dark:from-orange-900/20 dark:via-slate-900 dark:to-slate-900 px-5 md:px-7 py-5 md:py-6 shadow-sm">
+      <div class="mb-3 flex items-start justify-end">
+        <SiteUtilityActions />
+      </div>
       <p class="text-xs uppercase tracking-wide text-orange-700 dark:text-orange-300">datetime-helper docs</p>
       <h1 class="mt-1 font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
         Documentation
@@ -21,35 +26,19 @@ import Layout from "../../layouts/Layout.astro";
     </header>
 
     <section class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4" aria-label="Documentation tracks">
-      <a
-        href="/docs/developer-workflows"
-        class="group rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 md:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 motion-safe:transition-all motion-reduce:transition-none hover:border-gray-300 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-      >
-        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Human user</p>
-        <h2 class="mt-1 text-base font-semibold text-gray-900 dark:text-gray-100">Developer Workflows</h2>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Fast task-first usage guide for daily debugging and operations.</p>
-        <p class="mt-3 text-xs font-medium text-orange-700 dark:text-orange-300 group-hover:underline">Read guide</p>
-      </a>
-
-      <a
-        href="/docs/automation-url-contract"
-        class="group rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 md:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 motion-safe:transition-all motion-reduce:transition-none hover:border-gray-300 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-      >
-        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Agent and automation</p>
-        <h2 class="mt-1 text-base font-semibold text-gray-900 dark:text-gray-100">Automation URL Contract</h2>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Query schema, validation rules, and deterministic link patterns.</p>
-        <p class="mt-3 text-xs font-medium text-orange-700 dark:text-orange-300 group-hover:underline">Read guide</p>
-      </a>
-
-      <a
-        href="/docs/ai-palette-usage"
-        class="group rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 md:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 motion-safe:transition-all motion-reduce:transition-none hover:border-gray-300 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-      >
-        <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">AI-assisted input</p>
-        <h2 class="mt-1 text-base font-semibold text-gray-900 dark:text-gray-100">AI Palette Usage</h2>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Prompt patterns, reliability notes, and safe operational flow.</p>
-        <p class="mt-3 text-xs font-medium text-orange-700 dark:text-orange-300 group-hover:underline">Read guide</p>
-      </a>
+      {
+        DOC_GUIDES.map((guide) => (
+          <a
+            href={guide.href}
+            class="group rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 md:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 motion-safe:transition-all motion-reduce:transition-none hover:border-gray-300 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{guide.audience}</p>
+            <h2 class="mt-1 text-base font-semibold text-gray-900 dark:text-gray-100">{guide.title}</h2>
+            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">{guide.description}</p>
+            <p class="mt-3 text-xs font-medium text-orange-700 dark:text-orange-300 group-hover:underline">Read guide</p>
+          </a>
+        ))
+      }
     </section>
   </main>
 </Layout>

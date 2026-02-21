@@ -1,8 +1,31 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('theme parity', () => {
+  test('captures dark mode visual baselines for app and docs', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('theme', 'dark');
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+
+    await page.goto('/');
+    await page.addStyleTag({ content: '[data-theme-toggle] { display: none !important; }' });
+    const startDateInput = page.getByLabel('Start Date Input');
+    await startDateInput.fill('2026-02-21');
+    await expect(page).toHaveScreenshot('dark-home.png', { fullPage: true });
+
+    await page.goto('/docs');
+    await page.addStyleTag({ content: '[data-theme-toggle] { display: none !important; }' });
+    await expect(page).toHaveScreenshot('dark-docs-index.png', { fullPage: true });
+
+    await page.goto('/docs/developer-workflows');
+    await page.addStyleTag({ content: '[data-theme-toggle] { display: none !important; }' });
+    await expect(page).toHaveScreenshot('dark-docs-workflows.png', { fullPage: true });
+  });
+
   test('renders dark mode with visible copied-state signals', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('theme', 'dark');
+    });
     await page.goto('/');
 
     const inputZone = page.locator('section[aria-label="Input"]');
@@ -19,7 +42,9 @@ test.describe('theme parity', () => {
   });
 
   test('light mode keeps key accent text at accessible contrast', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'light' });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('theme', 'light');
+    });
     await page.goto('/');
 
     const startDateInput = page.getByLabel('Start Date Input');

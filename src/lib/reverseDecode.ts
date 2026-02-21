@@ -34,6 +34,7 @@ export function decodeDatetimeInput(input: string): FormattedResult {
 
   return {
     unixTimestamp: Math.floor(date.getTime() / 1000),
+    unixTimestampMs: date.getTime(),
     iso8601: date.toISOString(),
     rfc2822: toRfc2822(date),
     localHuman: formatLocalHuman(date),

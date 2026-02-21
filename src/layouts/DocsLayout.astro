@@ -1,5 +1,7 @@
 ---
 import Layout from "./Layout.astro";
+import SiteUtilityActions from "../components/SiteUtilityActions.astro";
+import { DOC_GUIDES } from "../lib/docsNav";
 
 interface Props {
   title?: string;
@@ -7,33 +9,95 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+const currentDocIndex = DOC_GUIDES.findIndex((guide) => guide.href === currentPath);
+const previousDoc = currentDocIndex > 0 ? DOC_GUIDES[currentDocIndex - 1] : undefined;
+const nextDoc = currentDocIndex >= 0 && currentDocIndex < DOC_GUIDES.length - 1 ? DOC_GUIDES[currentDocIndex + 1] : undefined;
 ---
 
 <Layout title={title} description={description}>
   <div class="docs-progress" aria-hidden="true">
     <div id="docs-progress-bar" class="docs-progress-bar"></div>
   </div>
-  <main class="max-w-[920px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
-    <div class="rounded-2xl border border-gray-200/80 dark:border-slate-700/80 bg-gradient-to-b from-orange-50/80 via-white to-white dark:from-orange-900/20 dark:via-slate-900 dark:to-slate-900 shadow-sm">
+  <main id="main-content" tabindex="-1" class="max-w-[920px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
+    <div class="rounded-2xl border border-gray-200/80 dark:border-slate-700/90 bg-gradient-to-b from-orange-50/80 via-white to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 shadow-sm">
       <div class="px-5 md:px-7 pt-5 md:pt-6">
         <nav aria-label="Documentation navigation" class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-          <a
-            href="/"
-            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            App
-          </a>
-          <a
-            href="/docs"
-            class="inline-flex items-center rounded-full border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-2.5 py-1 text-orange-800 dark:text-orange-200 hover:border-orange-400 dark:hover:border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            Docs home
-          </a>
+          <div class="flex flex-wrap items-center gap-2">
+            <a
+              href="/"
+              class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              App
+            </a>
+            <a
+              href="/docs"
+              class="inline-flex items-center rounded-full border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-2.5 py-1 text-orange-800 dark:text-orange-200 hover:border-orange-400 dark:hover:border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              Docs home
+            </a>
+          </div>
+          <div class="ml-auto">
+            <SiteUtilityActions />
+          </div>
         </nav>
+      </div>
+      <div class="px-5 md:px-7 pt-3 lg:hidden">
+        <label for="docs-toc-mobile-select" class="docs-mobile-toc-label">Jump to section</label>
+        <div class="docs-mobile-toc-select-shell ui-custom-select">
+          <select id="docs-toc-mobile-select" class="ui-select-native-proxy" aria-label="Jump to documentation section">
+            <option value="">Choose a section</option>
+          </select>
+          <button
+            id="docs-toc-mobile-trigger"
+            type="button"
+            class="docs-mobile-toc-select ui-select ui-select-md ui-custom-select-trigger"
+            aria-label="Jump to documentation section"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-controls="docs-toc-mobile-list"
+          >
+            <span id="docs-toc-mobile-value" class="ui-custom-select-value">Choose a section</span>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="docs-mobile-toc-chevron ui-custom-select-chevron ui-select-chevron-pill">
+              <path d="M5.5 7.5L10 12l4.5-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </button>
+          <ul id="docs-toc-mobile-list" role="listbox" class="ui-custom-select-list hidden"></ul>
+        </div>
       </div>
       <div class="lg:grid lg:grid-cols-[1fr_220px] lg:gap-6">
         <article id="docs-article" class="docs-article px-5 md:px-7 pb-6 md:pb-8 pt-4">
           <slot />
+          {
+            currentDocIndex >= 0 && (
+              <nav aria-label="Previous and next documentation pages" class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {previousDoc ? (
+                    <a
+                      href={previousDoc.href}
+                      class="inline-flex flex-col rounded-xl border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-2 text-left hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <span class="text-xs text-gray-500 dark:text-gray-400">Previous doc</span>
+                      <span class="text-sm font-medium text-gray-800 dark:text-gray-100">← {previousDoc.title}</span>
+                    </a>
+                  ) : (
+                    <div class="hidden sm:block"></div>
+                  )}
+                  {nextDoc ? (
+                    <a
+                      href={nextDoc.href}
+                      class="inline-flex flex-col rounded-xl border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-2 text-left sm:text-right hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <span class="text-xs text-gray-500 dark:text-gray-400">Next doc</span>
+                      <span class="text-sm font-medium text-gray-800 dark:text-gray-100">{nextDoc.title} →</span>
+                    </a>
+                  ) : (
+                    <div class="hidden sm:block"></div>
+                  )}
+                </div>
+              </nav>
+            )
+          }
           <div class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-4 flex flex-wrap items-center gap-2 text-sm">
             <a
               href="/docs"
@@ -76,16 +140,97 @@ const { title, description } = Astro.props;
   const article = document.getElementById("docs-article");
   const tocShell = document.getElementById("docs-toc-shell");
   const tocList = document.getElementById("docs-toc");
+  const tocMobileSelect = document.getElementById("docs-toc-mobile-select");
+  const tocMobileTrigger = document.getElementById("docs-toc-mobile-trigger");
+  const tocMobileList = document.getElementById("docs-toc-mobile-list");
+  const tocMobileValue = document.getElementById("docs-toc-mobile-value");
   const progressBar = document.getElementById("docs-progress-bar");
   const imageDialog = document.getElementById("docs-image-dialog");
   const imageDialogImg = document.getElementById("docs-image-dialog-img");
   const imageDialogCaption = document.getElementById("docs-image-dialog-caption");
   const imageDialogClose = document.getElementById("docs-image-dialog-close");
 
+  const sectionLabels = new Map<string, string>();
+  let mobileActiveIndex = -1;
+  const getMobileOptionButtons = () => {
+    if (!(tocMobileList instanceof HTMLUListElement)) return [] as HTMLButtonElement[];
+    return Array.from(tocMobileList.querySelectorAll<HTMLButtonElement>('button[role="option"]'));
+  };
+
+  const syncMobileOptionState = (selectedId: string, focusedIndex: number | null = null) => {
+    const buttons = getMobileOptionButtons();
+    buttons.forEach((button, index) => {
+      const optionValue = button.dataset.value ?? "";
+      const isSelected = optionValue === selectedId;
+      const isActive = focusedIndex !== null ? index === focusedIndex : false;
+      button.setAttribute("aria-selected", isSelected ? "true" : "false");
+      button.classList.toggle("is-selected", isSelected);
+      button.classList.toggle("is-active", isActive);
+    });
+  };
+
+  const setActiveMobileOption = (nextIndex: number) => {
+    const buttons = getMobileOptionButtons();
+    if (buttons.length === 0) return;
+    const boundedIndex = Math.max(0, Math.min(nextIndex, buttons.length - 1));
+    mobileActiveIndex = boundedIndex;
+    const selectedId = tocMobileSelect instanceof HTMLSelectElement ? tocMobileSelect.value : "";
+    syncMobileOptionState(selectedId, mobileActiveIndex);
+    buttons[mobileActiveIndex]?.focus();
+  };
+
+  const selectMobileOption = (id: string) => {
+    if (!id) return;
+    if (tocMobileSelect instanceof HTMLSelectElement) {
+      tocMobileSelect.value = id;
+    }
+    setMobileSelectionLabel(id);
+    syncMobileOptionState(id, null);
+    window.location.hash = id;
+    closeMobileMenu();
+  };
+
+  const closeMobileMenu = () => {
+    if (!(tocMobileTrigger instanceof HTMLButtonElement) || !(tocMobileList instanceof HTMLUListElement)) return;
+    tocMobileTrigger.setAttribute("aria-expanded", "false");
+    tocMobileTrigger.classList.remove("is-open");
+    tocMobileList.classList.add("hidden");
+    mobileActiveIndex = -1;
+    const selectedId = tocMobileSelect instanceof HTMLSelectElement ? tocMobileSelect.value : "";
+    syncMobileOptionState(selectedId, null);
+  };
+
+  const openMobileMenu = () => {
+    if (!(tocMobileTrigger instanceof HTMLButtonElement) || !(tocMobileList instanceof HTMLUListElement)) return;
+    tocMobileTrigger.setAttribute("aria-expanded", "true");
+    tocMobileTrigger.classList.add("is-open");
+    tocMobileList.classList.remove("hidden");
+    const selectedId = tocMobileSelect instanceof HTMLSelectElement ? tocMobileSelect.value : "";
+    const buttons = getMobileOptionButtons();
+    const selectedIndex = buttons.findIndex((button) => (button.dataset.value ?? "") === selectedId);
+    mobileActiveIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    syncMobileOptionState(selectedId, mobileActiveIndex);
+  };
+
+  const setMobileSelectionLabel = (id: string) => {
+    if (!(tocMobileValue instanceof HTMLElement)) return;
+    if (!id) {
+      tocMobileValue.textContent = "Choose a section";
+      return;
+    }
+    tocMobileValue.textContent = sectionLabels.get(id) ?? "Choose a section";
+  };
+
   if (article && tocList) {
     const headings = Array.from(article.querySelectorAll("h2"));
     if (headings.length === 0 && tocShell) {
       tocShell.style.display = "none";
+    }
+    if (headings.length === 0 && tocMobileSelect instanceof HTMLSelectElement) {
+      tocMobileSelect.style.display = "none";
+      const label = document.querySelector('label[for="docs-toc-mobile-select"]');
+      if (label instanceof HTMLElement) label.style.display = "none";
+      closeMobileMenu();
     }
 
     headings.forEach((heading, index) => {
@@ -124,8 +269,122 @@ const { title, description } = Astro.props;
       link.className = "docs-toc-link";
       item.appendChild(link);
       tocList.appendChild(item);
+
+      if (tocMobileSelect instanceof HTMLSelectElement) {
+        const option = document.createElement("option");
+        option.value = heading.id;
+        option.textContent = raw;
+        tocMobileSelect.appendChild(option);
+        sectionLabels.set(heading.id, raw);
+      }
+
+      if (tocMobileList instanceof HTMLUListElement) {
+        const optionItem = document.createElement("li");
+        const optionButton = document.createElement("button");
+        optionButton.type = "button";
+        optionButton.setAttribute("role", "option");
+        optionButton.setAttribute("aria-selected", "false");
+        optionButton.dataset.value = heading.id;
+        optionButton.className = "ui-custom-select-option";
+        optionButton.textContent = raw;
+        optionButton.addEventListener("click", () => {
+          selectMobileOption(heading.id);
+        });
+        optionItem.appendChild(optionButton);
+        tocMobileList.appendChild(optionItem);
+      }
     });
   }
+
+  if (tocMobileTrigger instanceof HTMLButtonElement) {
+    tocMobileTrigger.addEventListener("click", () => {
+      if (!(tocMobileList instanceof HTMLUListElement)) return;
+      const isOpen = tocMobileTrigger.getAttribute("aria-expanded") === "true";
+      if (isOpen) {
+        closeMobileMenu();
+        return;
+      }
+      openMobileMenu();
+    });
+
+    tocMobileTrigger.addEventListener("keydown", (event) => {
+      const isOpen = tocMobileTrigger.getAttribute("aria-expanded") === "true";
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!isOpen) openMobileMenu();
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = mobileActiveIndex < 0 ? 0 : mobileActiveIndex + delta;
+        setActiveMobileOption(nextIndex);
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        if (!isOpen) {
+          openMobileMenu();
+          return;
+        }
+        const buttons = getMobileOptionButtons();
+        const target = buttons[mobileActiveIndex];
+        const targetValue = target?.dataset.value ?? "";
+        if (targetValue) {
+          selectMobileOption(targetValue);
+          tocMobileTrigger.focus();
+        }
+      }
+    });
+  }
+
+  if (tocMobileList instanceof HTMLUListElement) {
+    tocMobileList.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = mobileActiveIndex < 0 ? 0 : mobileActiveIndex + delta;
+        setActiveMobileOption(nextIndex);
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        const buttons = getMobileOptionButtons();
+        const target = buttons[mobileActiveIndex];
+        const targetValue = target?.dataset.value ?? "";
+        if (targetValue) {
+          selectMobileOption(targetValue);
+          tocMobileTrigger instanceof HTMLButtonElement && tocMobileTrigger.focus();
+        }
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMobileMenu();
+        tocMobileTrigger instanceof HTMLButtonElement && tocMobileTrigger.focus();
+      }
+    });
+  }
+
+  if (tocMobileSelect instanceof HTMLSelectElement) {
+    tocMobileSelect.addEventListener("change", () => {
+      if (!tocMobileSelect.value) return;
+      window.location.hash = tocMobileSelect.value;
+      setMobileSelectionLabel(tocMobileSelect.value);
+      syncMobileOptionState(tocMobileSelect.value, null);
+      tocMobileSelect.blur();
+      closeMobileMenu();
+    });
+  }
+
+  window.addEventListener("click", (event) => {
+    if (!(tocMobileTrigger instanceof HTMLButtonElement) || !(tocMobileList instanceof HTMLUListElement)) return;
+    const target = event.target as Node | null;
+    if (!target) return;
+    if (tocMobileTrigger.contains(target) || tocMobileList.contains(target)) return;
+    closeMobileMenu();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeMobileMenu();
+  });
 
   if (article && progressBar) {
     const updateProgress = () => {
@@ -146,6 +405,11 @@ const { title, description } = Astro.props;
           if (heading.getBoundingClientRect().top <= 140) {
             activeId = heading.id;
           }
+        }
+        if (tocMobileSelect instanceof HTMLSelectElement && tocMobileSelect.value !== activeId) {
+          tocMobileSelect.value = activeId;
+          setMobileSelectionLabel(activeId);
+          syncMobileOptionState(activeId, null);
         }
         for (const link of tocLinks) {
           const isActive = link.getAttribute("href") === `#${activeId}`;

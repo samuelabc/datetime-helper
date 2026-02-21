@@ -5,6 +5,7 @@ import OperationRow from './OperationRow.svelte';
 function buildProps() {
   return {
     rowId: 1,
+    rowIndex: 0,
     direction: 'subtract' as const,
     amount: 0,
     unit: 'days' as const,
@@ -22,13 +23,16 @@ describe('OperationRow', () => {
     const direction = screen.getByLabelText('Direction') as HTMLSelectElement;
     const amount = screen.getByLabelText('Amount') as HTMLInputElement;
     const unit = screen.getByLabelText('Unit') as HTMLSelectElement;
+    const directionTrigger = screen.getAllByRole('button')[0] as HTMLButtonElement;
+    const unitTrigger = screen.getAllByRole('button')[1] as HTMLButtonElement;
 
     expect(direction.value).toBe('subtract');
     expect(amount.value).toBe('0');
     expect(unit.value).toBe('days');
-    expect(direction.className).toContain('h-11');
-    expect(amount.className).toContain('h-11');
-    expect(unit.className).toContain('h-11');
+    expect(direction.className).toContain('ui-select-native-proxy');
+    expect(directionTrigger.className).toContain('h-9');
+    expect(amount.className).toContain('h-9');
+    expect(unitTrigger.className).toContain('h-9');
   });
 
   it('calls direction and unit callbacks on changes', async () => {

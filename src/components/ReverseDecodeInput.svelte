@@ -20,14 +20,11 @@
     id="reverse-decode-input"
     aria-label="Reverse decode input"
     type="text"
+    autocomplete="off"
     value={value}
     oninput={handleInput}
     placeholder="e.g. 1739634600 or 2026-02-15T14:30:00Z"
-    class={`h-11 w-full bg-white dark:bg-slate-700 border rounded-md px-3 text-sm outline-none focus:ring-2 focus:ring-orange-500 ${
-      error
-        ? "border-red-400 text-red-700 dark:text-red-300"
-        : "border-gray-200 dark:border-slate-600 text-gray-900 dark:text-gray-100"
-    }`}
+    class={`ui-input ui-input-md h-11 ${error ? "ui-input-error" : ""}`}
   />
   {#if error}
     <p class="mt-1 text-xs text-red-500 dark:text-red-400">{error}</p>

@@ -36,7 +36,7 @@ describe("CommandPalette integration", () => {
       }),
     );
     render(Calculator);
-    const launcher = screen.getByRole("button", { name: "Open command palette" });
+    const launcher = screen.getByRole("button", { name: /Open command palette/ });
     launcher.focus();
     expect(document.activeElement).toBe(launcher);
 

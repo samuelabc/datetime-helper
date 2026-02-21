@@ -63,8 +63,6 @@ Use this for inspecting values pulled from logs, payloads, and database records.
 - Enter operation-oriented prompt text
 - Requires optional Gemini key in AI settings
 
-Related: `/docs/ai-palette-usage`
-
 ## Validation behavior
 
 - Invalid dates show inline feedback

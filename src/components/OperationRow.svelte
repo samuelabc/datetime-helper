@@ -1,10 +1,12 @@
 <script lang="ts">
+  import CustomSelect from './CustomSelect.svelte';
   import type { OperationDirection, OperationUnit, SnapUnit } from '../lib/types';
 
   type RowUnit = OperationUnit | SnapUnit;
 
   interface Props {
     rowId: number;
+    rowIndex: number;
     direction: OperationDirection;
     amount: number;
     unit: RowUnit;
@@ -17,6 +19,7 @@
 
   let {
     rowId,
+    rowIndex,
     direction,
     amount,
     unit,
@@ -27,15 +30,27 @@
     onRemove,
   }: Props = $props();
 
-  const handleDirectionChange = (event: Event) => {
-    const target = event.currentTarget as HTMLSelectElement;
-    if (target.value === 'add' || target.value === 'subtract' || target.value === 'snap') {
-      onDirectionChange(target.value);
-      return;
-    }
-    const value: OperationDirection = 'subtract';
-    onDirectionChange(value);
-  };
+  const directionOptions = [
+    { value: 'subtract', label: 'Subtract' },
+    { value: 'add', label: 'Add' },
+    { value: 'snap', label: 'Snap' },
+  ] as const;
+
+  const timedUnitOptions = [
+    { value: 'days', label: 'Days' },
+    { value: 'months', label: 'Months' },
+    { value: 'years', label: 'Years' },
+    { value: 'hours', label: 'Hours' },
+    { value: 'minutes', label: 'Minutes' },
+    { value: 'seconds', label: 'Seconds' },
+  ] as const;
+
+  const snapUnitOptions = [
+    { value: 'startOfDay', label: 'Start of day' },
+    { value: 'endOfDay', label: 'End of day' },
+    { value: 'startOfMonth', label: 'Start of month' },
+    { value: 'endOfMonth', label: 'End of month' },
+  ] as const;
 
   const handleAmountChange = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -54,10 +69,37 @@
     onAmountChange(Number.parseInt(raw, 10));
   };
 
-  const handleUnitChange = (event: Event) => {
-    const target = event.currentTarget as HTMLSelectElement;
-    const value = target.value as RowUnit;
-    onUnitChange(value);
+  const handleUnitChange = (value: string) => {
+    const nextValue = value as RowUnit;
+    onUnitChange(nextValue);
+  };
+
+  const unitOptions = $derived(
+    direction === 'snap'
+      ? [...snapUnitOptions]
+      : [...timedUnitOptions],
+  );
+
+  const handleDirectionUnitConsistency = (nextDirection: OperationDirection) => {
+    const nextUnitOptions = nextDirection === 'snap' ? snapUnitOptions : timedUnitOptions;
+    if (!nextUnitOptions.some((option) => option.value === unit)) {
+      const fallbackUnit = nextUnitOptions[0]?.value;
+      if (fallbackUnit) {
+        onUnitChange(fallbackUnit as RowUnit);
+      }
+    }
+  };
+
+  const handleDirectionSelection = (value: string) => {
+    if (value !== 'add' && value !== 'subtract' && value !== 'snap') {
+      const fallbackDirection: OperationDirection = 'subtract';
+      onDirectionChange(fallbackDirection);
+      handleDirectionUnitConsistency(fallbackDirection);
+      return;
+    }
+
+    onDirectionChange(value);
+    handleDirectionUnitConsistency(value);
   };
 
   const directionId = $derived(`operation-${rowId}-direction`);
@@ -65,22 +107,28 @@
   const unitId = $derived(`operation-${rowId}-unit`);
 </script>
 
-<div class="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-md p-3">
-  <div class="grid grid-cols-2 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-center">
-    <label class="sr-only" for={directionId}>Direction</label>
-    <select
-      id={directionId}
-      aria-label="Direction"
-      data-direction-id={rowId}
-      value={direction}
-      oninput={handleDirectionChange}
-      onchange={handleDirectionChange}
-      class="h-11 w-16 sm:w-auto rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+<div class="py-1">
+  <div class="grid grid-cols-1 sm:grid-cols-[auto,minmax(0,2fr),minmax(0,1fr),minmax(0,2fr),auto] gap-1.5 items-center">
+    <span
+      class="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-600 px-2 text-xs font-semibold text-gray-700 dark:text-gray-100"
+      aria-label={`Step ${rowIndex + 1}`}
     >
-      <option value="subtract">-</option>
-      <option value="add">+</option>
-      <option value="snap">snap</option>
-    </select>
+      {rowIndex + 1}
+    </span>
+
+    <label class="sr-only" for={directionId}>Direction</label>
+    <div class="ui-select-shell">
+      <CustomSelect
+        id={directionId}
+        ariaLabel="Direction"
+        dataDirectionId={rowId}
+        value={direction}
+        sizeClass="ui-select-sm"
+        heightClass="h-9"
+        options={directionOptions.map((option) => ({ ...option }))}
+        onChange={handleDirectionSelection}
+      />
+    </div>
 
     <label class="sr-only" for={amountId}>Amount</label>
     {#if direction !== 'snap'}
@@ -92,53 +140,48 @@
         pattern="[0-9]*"
         value={String(amount)}
         oninput={handleAmountChange}
-      onchange={handleAmountChange}
-        class="h-11 min-w-0 rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+        onchange={handleAmountChange}
+        class="ui-input ui-input-sm h-9 min-w-0"
       />
     {:else}
-      <input
+      <div
         id={amountId}
-        aria-label="Amount"
-        type="text"
-        value="1"
-        disabled
-        class="h-11 min-w-0 rounded-md border border-gray-200 dark:border-slate-600 bg-gray-100 dark:bg-slate-800 px-2 text-sm text-gray-500 dark:text-gray-400"
-      />
+        aria-label="Amount not applicable for snap"
+        class="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-600 bg-gray-100 dark:bg-slate-800 px-2 text-xs font-medium text-gray-500 dark:text-gray-400"
+      >
+        N/A
+      </div>
     {/if}
 
     <label class="sr-only" for={unitId}>Unit</label>
-    <select
-      id={unitId}
-      aria-label="Unit"
-      value={unit}
-      oninput={handleUnitChange}
-      onchange={handleUnitChange}
-      class="h-11 rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-    >
-      {#if direction === 'snap'}
-        <option value="startOfDay">startOfDay</option>
-        <option value="endOfDay">endOfDay</option>
-        <option value="startOfMonth">startOfMonth</option>
-        <option value="endOfMonth">endOfMonth</option>
-      {:else}
-        <option value="days">days</option>
-        <option value="months">months</option>
-        <option value="years">years</option>
-        <option value="hours">hours</option>
-        <option value="minutes">minutes</option>
-        <option value="seconds">seconds</option>
-      {/if}
-    </select>
+    <div class="ui-select-shell">
+      <CustomSelect
+        id={unitId}
+        ariaLabel="Unit"
+        value={unit}
+        sizeClass="ui-select-sm"
+        heightClass="h-9"
+        options={unitOptions.map((option) => ({ ...option }))}
+        onChange={handleUnitChange}
+      />
+    </div>
 
     {#if showRemove}
       <button
         type="button"
         aria-label="Remove operation"
         onclick={() => onRemove?.()}
-        class="col-span-2 sm:col-span-1 h-11 rounded-md px-3 text-sm sm:text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-orange-500"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+        title={`Remove step ${rowIndex + 1}`}
       >
-        Remove
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="h-4 w-4">
+          <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+        </svg>
       </button>
     {/if}
   </div>
+
+  {#if direction === 'snap'}
+    <p class="mt-1 pl-8 text-[11px] text-gray-500 dark:text-gray-400">Snap ignores amount and jumps to boundary.</p>
+  {/if}
 </div>

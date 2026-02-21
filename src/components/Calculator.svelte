@@ -15,7 +15,6 @@
   import ShareLinkButton from "./ShareLinkButton.svelte";
   import ReverseDecodeInput from "./ReverseDecodeInput.svelte";
   import TimezoneControls from "./TimezoneControls.svelte";
-  import { detectAiAvailability, type AiAvailabilityResult } from "../lib/aiAvailability";
   import { parsedOperationsToRows, NaturalLanguageParseError } from "../lib/naturalLanguageParser";
   import { AiRequestController } from "../lib/aiRequestController";
   import { routeAiParseRequest, AiProviderError } from "../lib/aiProviderRouter";
@@ -26,7 +25,7 @@
   import { encodeUrlState, decodeUrlState } from "../lib/urlState";
   import { buildBookmarklet, parseBookmarkletSearch } from "../lib/bookmarklet";
   import { decodeDatetimeInput, ReverseDecodeError } from "../lib/reverseDecode";
-  import { applyTimezoneContext, supportsIanaTimeZones, type TimezoneMode } from "../lib/timezoneContext";
+  import { applyTimezoneContext, getAvailableIanaTimeZones, supportsIanaTimeZones, type TimezoneMode } from "../lib/timezoneContext";
   import { applyOperationChain, SnapOperationError } from "../lib/snapOperations";
   import { getCountdownValue } from "../lib/countdown";
   import { getNextCronRuns, CronParseError, type CronRunInstant } from "../lib/cronDebugger";
@@ -60,7 +59,6 @@
   let commandPaletteError = $state<string | null>(null);
   let aiApplyAnnouncement = $state("");
   let previousFocusedElement = $state<HTMLElement | null>(null);
-  let aiAvailability = $state<AiAvailabilityResult>({ state: "unavailable", message: "Checking AI availability..." });
   let aiSettings = $state<AiSettings>({
     geminiApiKey: null,
     allowPromptPersistence: false,
@@ -77,18 +75,21 @@
   let cronError = $state<string | null>(null);
   let cronReferenceTimezone = $state<"UTC" | "LOCAL">("UTC");
   let lowConfidenceOperationIds = $state<number[]>([]);
+  let operationsEditorOpen = $state(false);
 
   let reverseMode = $state(false);
   let reverseDecodeInput = $state("");
 
   let timezoneMode = $state<TimezoneMode>("utc");
-  let selectedIanaTimezone = $state("America/New_York");
+  let selectedIanaTimezone = $state("");
   let ianaSupported = $state(false);
   let ianaTimezones = $state<string[]>([]);
+  let pauseLiveUpdates = $state(false);
 
   let hasNonZeroOperation = $derived(operations.some((operation) => operation.direction === "snap" || operation.amount > 0));
   let containsSnapOperation = $derived(operations.some((operation) => operation.direction === "snap"));
   let isLive = $derived(isNowMode && !hasNonZeroOperation && !reverseMode);
+  let isLiveTicking = $derived(isLive && !pauseLiveUpdates);
   let result = $derived(baseResult ? applyTimezoneContext(baseResult, { mode: timezoneMode, ianaTimeZone: selectedIanaTimezone }) : null);
   let shareQuery = $derived(
     encodeUrlState({
@@ -108,6 +109,32 @@
   let countdownUntil = $derived.by(() => (countdownValue && countdownValue.mode === "until" ? countdownValue : null));
   let countdownSince = $derived.by(() => (countdownValue && countdownValue.mode === "since" ? countdownValue : null));
   let countdownAnnouncement = $state("");
+  const timedUnitLabel: Record<string, string> = {
+    days: "days",
+    months: "months",
+    years: "years",
+    hours: "hours",
+    minutes: "minutes",
+    seconds: "seconds",
+  };
+  const snapUnitLabel: Record<string, string> = {
+    startOfDay: "start of day",
+    endOfDay: "end of day",
+    startOfMonth: "start of month",
+    endOfMonth: "end of month",
+  };
+  let operationsSummary = $derived.by(() =>
+    operations
+      .map((operation) => {
+        if (operation.direction === "snap") {
+          return `snap ${snapUnitLabel[operation.unit] ?? operation.unit}`;
+        }
+        const prefix = operation.direction === "add" ? "+" : "-";
+        return `${prefix}${operation.amount} ${timedUnitLabel[operation.unit] ?? operation.unit}`;
+      })
+      .join("  ")
+      .trim(),
+  );
 
   let showReset = $derived.by(() => {
     const firstOperation = operations[0];
@@ -215,7 +242,7 @@
 
     try {
       const startedAt = performance.now();
-      const routed = await routeAiParseRequest(prompt, aiAvailability, handle.signal);
+      const routed = await routeAiParseRequest(prompt, handle.signal);
       const parsed = routed.parsed;
       const parsedRows = parsedOperationsToRows(parsed.operations);
       if (parsedRows.length === 0) {
@@ -250,6 +277,7 @@
       }
 
       const appliedOperationIds = applyParsedStateAtomically(parsedRows, startContext);
+      operationsEditorOpen = true;
       const lowConfidenceIndexes = (confidenceModel?.steps ?? [])
         .filter((step) => step.lowConfidence)
         .map((step) => step.operationIndex);
@@ -283,7 +311,7 @@
       }
       emitAiTelemetry(
         {
-          source: aiAvailability.state === "ready" ? "local" : "gemini",
+          source: "gemini",
           status: "error",
           durationMs: 1,
         },
@@ -300,13 +328,9 @@
     try {
       await init();
       wasmReady = true;
-      aiAvailability = detectAiAvailability();
       aiSettings = loadAiSettings();
-      ianaSupported = supportsIanaTimeZones();
-      if (ianaSupported && typeof Intl.supportedValuesOf === "function") {
-        ianaTimezones = Intl.supportedValuesOf("timeZone").slice(0, 80);
-        if (ianaTimezones.length > 0) selectedIanaTimezone = ianaTimezones[0] as string;
-      }
+      ianaTimezones = getAvailableIanaTimeZones();
+      ianaSupported = supportsIanaTimeZones() || ianaTimezones.length > 0;
     } catch (error) {
       engineError = error instanceof Error ? error.message : "Failed to initialize engine";
       console.error("Wasm init failed:", error);
@@ -411,7 +435,7 @@
   });
 
   $effect(() => {
-    if (!isLive || !wasmReady || !hydrationComplete) return;
+    if (!isLiveTicking || !wasmReady || !hydrationComplete) return;
     const tick = () => recalculate();
     tick();
     if (prefersReducedMotion) return;
@@ -456,11 +480,21 @@
     reverseMode = false;
     startDateInput = value;
     const trimmed = value.trim();
+    const normalized = trimmed.toLowerCase();
 
     if (trimmed.length === 0) {
       isNowMode = false;
       startDateError = null;
       explicitStartDate = null;
+      return;
+    }
+
+    if (normalized === "now") {
+      startDateInput = "now";
+      isNowMode = true;
+      startDateError = null;
+      explicitStartDate = null;
+      recalculate();
       return;
     }
 
@@ -489,22 +523,25 @@
 
   const updateOperation = (id: number, updater: (operation: OperationRowState) => OperationRowState) => {
     reverseMode = false;
+    operationsEditorOpen = true;
     operations = operations.map((operation) => (operation.id === id ? updater(operation) : operation));
     recalculate();
   };
 
   const handleAddOperation = async () => {
     reverseMode = false;
+    operationsEditorOpen = true;
     const newId = nextOperationId;
     nextOperationId += 1;
     operations = [...operations, createDefaultOperation(newId)];
     recalculate();
     await Promise.resolve();
-    document.querySelector<HTMLSelectElement>(`[data-direction-id="${newId}"]`)?.focus();
+    document.querySelector<HTMLElement>(`[data-direction-id="${newId}"]`)?.focus();
   };
 
   const handleRemoveOperation = (id: number) => {
     reverseMode = false;
+    operationsEditorOpen = true;
     if (operations.length <= 1) return;
     operations = operations.filter((operation) => operation.id !== id);
     lowConfidenceOperationIds = lowConfidenceOperationIds.filter((currentId) => currentId !== id);
@@ -519,6 +556,7 @@
 
   const handleReset = () => {
     reverseMode = false;
+    operationsEditorOpen = false;
     reverseDecodeInput = "";
     reverseDecodeError = null;
     isNowMode = true;
@@ -532,11 +570,25 @@
     countdownTargetIso = null;
     recalculate();
   };
+
+  const handleHeroPauseChange = (paused: boolean, event: FocusEvent | null) => {
+    if (paused) {
+      pauseLiveUpdates = true;
+      return;
+    }
+    if (!event) {
+      pauseLiveUpdates = false;
+      return;
+    }
+    const currentTarget = event.currentTarget as HTMLElement | null;
+    const nextTarget = event.relatedTarget as Node | null;
+    if (currentTarget && nextTarget && currentTarget.contains(nextTarget)) return;
+    pauseLiveUpdates = false;
+  };
 </script>
 
 <CommandPalette
   open={commandPaletteOpen}
-  availability={aiAvailability}
   busy={commandPaletteBusy}
   error={commandPaletteError}
   settings={aiSettings}
@@ -564,9 +616,9 @@
           type="button"
           aria-label="Use calculator mode"
           onclick={() => (reverseMode = false)}
-          class={`h-10 rounded-md border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+          class={`h-10 rounded-md border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors cursor-pointer ${
             reverseMode
-              ? "border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200"
+              ? "border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-600"
               : "border-orange-500 bg-orange-500 text-white"
           }`}
         >
@@ -576,10 +628,10 @@
           type="button"
           aria-label="Use reverse decode mode"
           onclick={() => (reverseMode = true)}
-          class={`h-10 rounded-md border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+          class={`h-10 rounded-md border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors cursor-pointer ${
             reverseMode
               ? "border-orange-500 bg-orange-500 text-white"
-              : "border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200"
+              : "border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-600"
           }`}
         >
           Decode
@@ -600,31 +652,68 @@
           />
         </div>
       {/if}
-      <div>
-        <p class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Operations</p>
-        <div class="space-y-2">
-          {#each operations as operation, index (operation.id)}
-            <div class={lowConfidenceOperationIds.includes(operation.id) ? "rounded-md ring-1 ring-amber-400 p-1" : ""}>
-              <OperationRow
-                rowId={operation.id}
-                direction={operation.direction}
-                amount={operation.amount}
-                unit={operation.unit}
-                showRemove={operations.length > 1}
-                onDirectionChange={(value) => updateOperation(operation.id, (op) => ({ ...op, direction: value }))}
-                onAmountChange={(value) => updateOperation(operation.id, (op) => ({ ...op, amount: value }))}
-                onUnitChange={(value) => updateOperation(operation.id, (op) => ({ ...op, unit: value }))}
-                onRemove={() => handleRemoveOperation(operation.id)}
-              />
-            </div>
-          {/each}
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <AddOperationButton onClick={handleAddOperation} />
-            {#if showReset}
-              <ResetButton onClick={handleReset} />
-            {/if}
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <p class="block text-xs font-medium text-gray-700 dark:text-gray-300">Operations</p>
+          <div class="flex items-center gap-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400">{operations.length} {operations.length === 1 ? "step" : "steps"}</p>
+            <button
+              type="button"
+              aria-label={operationsEditorOpen ? "Collapse steps editor" : "Edit steps"}
+              onclick={() => (operationsEditorOpen = !operationsEditorOpen)}
+              class="rounded-md border border-gray-200 dark:border-slate-600 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {operationsEditorOpen ? "Collapse" : "Edit"}
+            </button>
           </div>
         </div>
+        {#if operationsEditorOpen}
+          <div class="rounded-md border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40 divide-y divide-gray-100 dark:divide-slate-700/80">
+            {#each operations as operation, index (operation.id)}
+              <div
+                class={`px-2 py-2 sm:px-3 ${
+                  lowConfidenceOperationIds.includes(operation.id)
+                    ? "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-400"
+                    : ""
+                }`}
+              >
+                <OperationRow
+                  rowId={operation.id}
+                  rowIndex={index}
+                  direction={operation.direction}
+                  amount={operation.amount}
+                  unit={operation.unit}
+                  showRemove={operations.length > 1}
+                  onDirectionChange={(value) => updateOperation(operation.id, (op) => ({ ...op, direction: value }))}
+                  onAmountChange={(value) => updateOperation(operation.id, (op) => ({ ...op, amount: value }))}
+                  onUnitChange={(value) => updateOperation(operation.id, (op) => ({ ...op, unit: value }))}
+                  onRemove={() => handleRemoveOperation(operation.id)}
+                />
+                {#if lowConfidenceOperationIds.includes(operation.id)}
+                  <p class="mt-1 pl-8 text-[11px] text-amber-700 dark:text-amber-300">Check this step.</p>
+                {/if}
+              </div>
+            {/each}
+            <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-2 sm:px-3">
+              <AddOperationButton onClick={handleAddOperation} />
+              {#if showReset}
+                <ResetButton onClick={handleReset} />
+              {/if}
+            </div>
+          </div>
+        {:else}
+          <button
+            type="button"
+            aria-label="Edit steps"
+            onclick={() => (operationsEditorOpen = true)}
+            class="w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40 px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <p class="text-xs text-gray-600 dark:text-gray-300">{operationsSummary || "No steps configured."}</p>
+            {#if lowConfidenceOperationIds.length > 0}
+              <p class="mt-1 text-[11px] text-amber-700 dark:text-amber-300">Review suggested steps before sharing.</p>
+            {/if}
+          </button>
+        {/if}
       </div>
       <TimezoneControls
         mode={timezoneMode}
@@ -638,34 +727,38 @@
           selectedIanaTimezone = value;
         }}
       />
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="space-y-2">
         <button
           type="button"
           onclick={() => {
             previousFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             commandPaletteOpen = true;
           }}
-          aria-label="Open command palette"
-          class="inline-flex items-center rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          aria-label="Open command palette (Cmd/Ctrl + K)"
+          class="inline-flex items-center rounded-md border border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-3 py-2 text-sm font-medium text-orange-800 dark:text-orange-200 hover:border-orange-300 dark:hover:border-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
-          Open command palette
+          Open command palette (Cmd/Ctrl + K)
         </button>
-        <ShareLinkButton value={shareUrl} />
-        <a
-          href={bookmarkletScript}
-          aria-label="Install bookmarklet"
-          class="inline-flex items-center rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-        >
-          Install bookmarklet
-        </a>
-      </div>
-      {#if aiAvailability.state !== "ready"}
-        <p class="text-xs text-amber-700 dark:text-amber-300">
-          {aiAvailability.message}
+        <p class="text-xs text-gray-600 dark:text-gray-300">
+          Try: <span class="font-mono">"subtract 90 days then add 2 hours"</span>
         </p>
-      {/if}
-      {#if aiAvailability.state !== "ready" && aiSettings.geminiApiKey}
-        <p class="text-xs text-green-700 dark:text-green-300">Fallback provider configured via local Gemini API key.</p>
+        <details class="rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2">
+          <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200">More tools</summary>
+          <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">Use these for sharing and browser quick-launch workflows.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <ShareLinkButton value={shareUrl} />
+            <a
+              href={bookmarkletScript}
+              aria-label="Install bookmarklet"
+              class="inline-flex items-center rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              Install bookmarklet
+            </a>
+          </div>
+        </details>
+      </div>
+      {#if !aiSettings.geminiApiKey}
+        <p class="text-xs text-amber-700 dark:text-amber-300">Add optional Gemini key in settings to use AI.</p>
       {/if}
       <CronDebugger
         open={cronOpen}
@@ -696,9 +789,14 @@
 
   <!-- Output Zone -->
   <section aria-label="Results" class="md:w-3/5 min-w-0 space-y-3">
-    <!-- Hero: Unix Timestamp -->
+    <!-- Hero: Unix Timestamp (milliseconds) -->
     {#if wasmReady && result}
-      <HeroResultRow value={result.unixTimestamp} isLive={isLive} />
+      <HeroResultRow
+        valueMs={typeof result.unixTimestampMs === "number" ? result.unixTimestampMs : result.unixTimestamp * 1000}
+        isLive={isLive}
+        paused={pauseLiveUpdates}
+        onPauseChange={handleHeroPauseChange}
+      />
       <button
         type="button"
         class="mt-2 text-xs rounded border border-gray-200 dark:border-slate-600 px-2 py-1"
@@ -710,7 +808,7 @@
       </button>
     {:else}
       <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-md p-4">
-        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unix Timestamp</span>
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unix Timestamp (ms)</span>
         <p class="font-mono text-[1.6rem] sm:text-[2rem] leading-tight font-semibold text-gray-300 dark:text-gray-600 mt-1">---</p>
       </div>
     {/if}
@@ -737,7 +835,7 @@
 
     <!-- Local Time -->
     {#if wasmReady && result}
-      <ResultRow formatLabel={timezoneMode === 'utc' ? 'Local Time (UTC)' : timezoneMode === 'iana' ? `Local Time (${selectedIanaTimezone})` : 'Local Time'} value={result.localHuman} />
+      <ResultRow formatLabel={timezoneMode === 'utc' ? 'UTC Time' : timezoneMode === 'iana' ? (selectedIanaTimezone ? `Time (${selectedIanaTimezone})` : 'Time (IANA)') : 'Local Time'} value={result.localHuman} />
     {:else}
       <div class="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-md p-3">
         <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Local Time</span>

@@ -1,12 +1,10 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import type { AiAvailabilityResult } from "../lib/aiAvailability";
   import type { AiSettings } from "../lib/aiSettings";
   import AISettingsPanel from "./AISettingsPanel.svelte";
 
   interface Props {
     open: boolean;
-    availability: AiAvailabilityResult;
     busy: boolean;
     error: string | null;
     settings: AiSettings;
@@ -16,7 +14,7 @@
     onClearGeminiKey: () => void;
   }
 
-  let { open, availability, busy, error, settings, onClose, onSubmit, onSaveSettings, onClearGeminiKey }: Props = $props();
+  let { open, busy, error, settings, onClose, onSubmit, onSaveSettings, onClearGeminiKey }: Props = $props();
   let prompt = $state("");
   let panelRef = $state<HTMLDivElement | null>(null);
   let inputRef = $state<HTMLInputElement | null>(null);
@@ -89,20 +87,15 @@
           id="command-palette-input"
           aria-label="Command palette prompt"
           type="text"
+          autocomplete="off"
           bind:value={prompt}
           placeholder="e.g. 6 months ago from now then add 3 days"
-          class="h-11 w-full rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          class="ui-input ui-input-md h-11"
         />
 
-        <p
-          class={`text-xs ${
-            availability.state === "ready"
-              ? "text-green-700 dark:text-green-300"
-              : "text-amber-700 dark:text-amber-300"
-          }`}
-        >
-          {availability.state === "ready" ? "AI ready" : availability.message ?? "AI unavailable"}
-        </p>
+        {#if !settings.geminiApiKey}
+          <p class="text-xs text-amber-700 dark:text-amber-300">Add optional Gemini key in settings to use AI.</p>
+        {/if}
 
         {#if error}
           <p class="text-xs text-red-600 dark:text-red-300">{error}</p>
@@ -120,7 +113,7 @@
           </button>
           <button
             type="submit"
-            disabled={(availability.state !== "ready" && !settings.geminiApiKey) || busy}
+            disabled={!settings.geminiApiKey || busy}
             class="h-10 rounded-md border border-orange-500 bg-orange-500 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             {busy ? "Applying..." : "Apply"}

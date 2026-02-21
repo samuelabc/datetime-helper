@@ -1,8 +1,6 @@
-import type { AiAvailabilityResult } from "./aiAvailability";
 import { loadAiSettings } from "./aiSettings";
 import {
   parseAiProviderOutput,
-  parseNaturalLanguagePrompt,
   type AiProviderParseOutput,
   type NaturalLanguageParseResult,
   NaturalLanguageParseError,
@@ -95,16 +93,11 @@ async function parseWithGemini(prompt: string, signal?: AbortSignal): Promise<Na
 
 export async function routeAiParseRequest(
   prompt: string,
-  availability: AiAvailabilityResult,
   signal?: AbortSignal,
-): Promise<{ parsed: NaturalLanguageParseResult; source: "local" | "gemini" }> {
-  if (availability.state === "ready") {
-    return { parsed: parseNaturalLanguagePrompt(prompt), source: "local" };
-  }
-
+): Promise<{ parsed: NaturalLanguageParseResult; source: "gemini" }> {
   const settings = loadAiSettings();
   if (!settings.geminiApiKey) {
-    throw new AiProviderError("MISSING_KEY", "AI unavailable locally. Add optional Gemini key in settings.");
+    throw new AiProviderError("MISSING_KEY", "Add optional Gemini key in settings to use AI.");
   }
 
   try {
