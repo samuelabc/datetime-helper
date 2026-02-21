@@ -29,9 +29,39 @@ import Calculator from '../components/Calculator.svelte';
             <path d="M32 32V22M32 32L42 37" stroke="url(#site-logo-hands)" stroke-width="4" stroke-linecap="round" />
             <circle cx="32" cy="32" r="2.2" fill="#FFF7ED" />
           </svg>
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">datetime-helper</h1>
+          <h1 class="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+            datetime-helper
+          </h1>
         </div>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Unix timestamp calculator and date math toolkit.</p>
+        <p class="mt-1 font-serif text-base sm:text-lg text-gray-700 dark:text-gray-300">
+          Unix timestamp calculator and date math toolkit.
+        </p>
+        <nav aria-label="Documentation links" class="mt-2 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <a
+            href="/docs"
+            class="inline-flex items-center rounded-full border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-2.5 py-1 text-orange-800 dark:text-orange-200 hover:border-orange-400 dark:hover:border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            Docs
+          </a>
+          <a
+            href="/docs/developer-workflows"
+            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            Developer workflows
+          </a>
+          <a
+            href="/docs/automation-url-contract"
+            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            Automation contract
+          </a>
+          <a
+            href="/docs/ai-palette-usage"
+            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            AI palette usage
+          </a>
+        </nav>
       </div>
       <a
         href="https://github.com/samuelabc/datetime-helper"

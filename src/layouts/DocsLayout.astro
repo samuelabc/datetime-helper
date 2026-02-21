@@ -1,0 +1,191 @@
+---
+import Layout from "./Layout.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<Layout title={title} description={description}>
+  <div class="docs-progress" aria-hidden="true">
+    <div id="docs-progress-bar" class="docs-progress-bar"></div>
+  </div>
+  <main class="max-w-[920px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
+    <div class="rounded-2xl border border-gray-200/80 dark:border-slate-700/80 bg-gradient-to-b from-orange-50/80 via-white to-white dark:from-orange-900/20 dark:via-slate-900 dark:to-slate-900 shadow-sm">
+      <div class="px-5 md:px-7 pt-5 md:pt-6">
+        <nav aria-label="Documentation navigation" class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <a
+            href="/"
+            class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            App
+          </a>
+          <a
+            href="/docs"
+            class="inline-flex items-center rounded-full border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/30 px-2.5 py-1 text-orange-800 dark:text-orange-200 hover:border-orange-400 dark:hover:border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            Docs home
+          </a>
+        </nav>
+      </div>
+      <div class="lg:grid lg:grid-cols-[1fr_220px] lg:gap-6">
+        <article id="docs-article" class="docs-article px-5 md:px-7 pb-6 md:pb-8 pt-4">
+          <slot />
+          <div class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-4 flex flex-wrap items-center gap-2 text-sm">
+            <a
+              href="/docs"
+              class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              Back to docs hub
+            </a>
+            <a
+              href="/"
+              class="inline-flex items-center rounded-full border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              Open app
+            </a>
+          </div>
+        </article>
+        <aside id="docs-toc-shell" class="hidden lg:block pt-4 pr-5 pb-6 md:pb-8">
+          <div class="docs-toc-card">
+            <p class="docs-toc-title">On this page</p>
+            <ol id="docs-toc" class="docs-toc-list"></ol>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="docs-image-dialog" class="docs-image-dialog">
+    <div class="docs-image-dialog-panel">
+      <div class="docs-image-dialog-top">
+        <p id="docs-image-dialog-caption" class="docs-image-dialog-caption"></p>
+        <button id="docs-image-dialog-close" type="button" class="docs-image-dialog-close" aria-label="Close image preview">
+          Close
+        </button>
+      </div>
+      <img id="docs-image-dialog-img" src="" alt="" />
+    </div>
+  </dialog>
+</Layout>
+
+<script>
+  const article = document.getElementById("docs-article");
+  const tocShell = document.getElementById("docs-toc-shell");
+  const tocList = document.getElementById("docs-toc");
+  const progressBar = document.getElementById("docs-progress-bar");
+  const imageDialog = document.getElementById("docs-image-dialog");
+  const imageDialogImg = document.getElementById("docs-image-dialog-img");
+  const imageDialogCaption = document.getElementById("docs-image-dialog-caption");
+  const imageDialogClose = document.getElementById("docs-image-dialog-close");
+
+  if (article && tocList) {
+    const headings = Array.from(article.querySelectorAll("h2"));
+    if (headings.length === 0 && tocShell) {
+      tocShell.style.display = "none";
+    }
+
+    headings.forEach((heading, index) => {
+      const raw = heading.textContent?.trim() || `section-${index + 1}`;
+      if (!heading.id) {
+        heading.id = raw
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "-");
+      }
+
+      const anchorButton = document.createElement("button");
+      anchorButton.type = "button";
+      anchorButton.className = "docs-anchor-btn";
+      anchorButton.setAttribute("aria-label", `Copy link to section: ${raw}`);
+      anchorButton.textContent = "#";
+      anchorButton.addEventListener("click", async () => {
+        const target = `${window.location.origin}${window.location.pathname}#${heading.id}`;
+        try {
+          await navigator.clipboard.writeText(target);
+          anchorButton.textContent = "Copied";
+          window.setTimeout(() => {
+            anchorButton.textContent = "#";
+          }, 1200);
+        } catch {
+          window.location.hash = heading.id;
+        }
+      });
+      heading.appendChild(anchorButton);
+
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `#${heading.id}`;
+      link.textContent = raw;
+      link.className = "docs-toc-link";
+      item.appendChild(link);
+      tocList.appendChild(item);
+    });
+  }
+
+  if (article && progressBar) {
+    const updateProgress = () => {
+      const rect = article.getBoundingClientRect();
+      const articleTop = window.scrollY + rect.top;
+      const articleHeight = article.scrollHeight;
+      const viewport = window.innerHeight;
+      const maxDistance = Math.max(1, articleHeight - viewport * 0.8);
+      const distance = Math.min(Math.max(window.scrollY - articleTop + viewport * 0.25, 0), maxDistance);
+      const value = Math.round((distance / maxDistance) * 100);
+      progressBar.style.width = `${value}%`;
+
+      const tocLinks = Array.from(document.querySelectorAll(".docs-toc-link"));
+      const sectionHeadings = Array.from(article.querySelectorAll("h2[id]"));
+      if (tocLinks.length > 0 && sectionHeadings.length > 0) {
+        let activeId = sectionHeadings[0]?.id ?? "";
+        for (const heading of sectionHeadings) {
+          if (heading.getBoundingClientRect().top <= 140) {
+            activeId = heading.id;
+          }
+        }
+        for (const link of tocLinks) {
+          const isActive = link.getAttribute("href") === `#${activeId}`;
+          link.classList.toggle("is-active", isActive);
+        }
+      }
+    };
+
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+  }
+
+  if (
+    article &&
+    imageDialog instanceof HTMLDialogElement &&
+    imageDialogImg instanceof HTMLImageElement &&
+    imageDialogCaption &&
+    imageDialogClose instanceof HTMLButtonElement
+  ) {
+    const previewableImages = Array.from(article.querySelectorAll("img"));
+    previewableImages.forEach((image) => {
+      image.addEventListener("click", () => {
+        const source = image.getAttribute("src");
+        if (!source) return;
+        imageDialogImg.src = source;
+        imageDialogImg.alt = image.getAttribute("alt") ?? "";
+        imageDialogCaption.textContent = image.getAttribute("alt") ?? "Documentation screenshot";
+        imageDialog.showModal();
+      });
+    });
+
+    imageDialogClose.addEventListener("click", () => {
+      imageDialog.close();
+    });
+
+    imageDialog.addEventListener("click", (event) => {
+      if (event.target === imageDialog) {
+        imageDialog.close();
+      }
+    });
+  }
+</script>

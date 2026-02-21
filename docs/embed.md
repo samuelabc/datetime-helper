@@ -24,3 +24,9 @@ pnpm build:web-component
 - `state`: Optional encoded URL state query string (same format as share links).
 
 The component isolates host-page styles by rendering in a shadow-root iframe.
+
+## Related docs
+
+- Developer workflows: `/docs/developer-workflows`
+- Automation URL contract: `/docs/automation-url-contract`
+- AI palette usage: `/docs/ai-palette-usage`
