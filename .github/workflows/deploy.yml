@@ -73,7 +73,7 @@ jobs:
       - name: Build site
         run: pnpm build
 
-      # 12. Deploy to Cloudflare Pages (main branch only)
+      # 12. Deploy production to Cloudflare Pages (main branch only)
       - name: Deploy to Cloudflare Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
@@ -81,3 +81,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=datetime-helper
+
+      # 13. Deploy PR preview to Cloudflare Pages
+      # Skip forked PRs because repository secrets are unavailable there.
+      - name: Deploy PR preview to Cloudflare Pages
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=datetime-helper --branch=pr-${{ github.event.pull_request.number }}
