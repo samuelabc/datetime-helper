@@ -10,6 +10,7 @@
 
   let { inputId = 'start-date-input', value, error, isNow, onInput, onBlur }: Props = $props();
   let calendarInput: HTMLInputElement | null = null;
+  let useDirectTouchPicker = $state(false);
 
   const handleInput = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -56,9 +57,17 @@
 
     const seededDate = isNow ? new Date() : (parseDateCandidate(value) ?? new Date());
     calendarInput.value = formatAsDatetimeLocal(seededDate);
-    if (typeof calendarInput.showPicker === 'function') {
-      calendarInput.showPicker();
+    if (useDirectTouchPicker) {
+      calendarInput.focus();
       return;
+    }
+    if (typeof calendarInput.showPicker === 'function') {
+      try {
+        calendarInput.showPicker();
+        return;
+      } catch {
+        // Some browsers expose showPicker but still reject calls.
+      }
     }
     calendarInput.focus();
     calendarInput.click();
@@ -71,6 +80,23 @@
     if (Number.isNaN(nextDate.getTime())) return;
     onInput(nextDate.toISOString());
   };
+
+  $effect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(pointer: coarse)');
+    const updatePickerMode = () => {
+      useDirectTouchPicker = mediaQuery.matches;
+    };
+    updatePickerMode();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updatePickerMode);
+      return () => mediaQuery.removeEventListener('change', updatePickerMode);
+    }
+
+    mediaQuery.addListener(updatePickerMode);
+    return () => mediaQuery.removeListener(updatePickerMode);
+  });
 </script>
 
 <div>
@@ -102,9 +128,14 @@
     <input
       bind:this={calendarInput}
       tabindex="-1"
-      aria-hidden="true"
+      aria-hidden={!useDirectTouchPicker}
+      aria-label="Choose start date and time"
       type="datetime-local"
-      class="absolute h-0 w-0 opacity-0 pointer-events-none"
+      class={`absolute ${
+        useDirectTouchPicker
+          ? 'right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 z-10 opacity-0 cursor-pointer'
+          : 'h-0 w-0 opacity-0 pointer-events-none'
+      }`}
       oninput={handleCalendarChange}
       onchange={handleCalendarChange}
     />
