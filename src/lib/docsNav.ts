@@ -24,4 +24,10 @@ export const DOC_GUIDES: DocGuide[] = [
     description: "Prompt patterns, reliability notes, and safe operational flow.",
     audience: "AI-assisted input",
   },
+  {
+    href: "/docs/agent-skill",
+    title: "Agent Skill",
+    description: "Skill file that teaches AI coding agents to use datetime-helper accurately.",
+    audience: "Agent integration",
+  },
 ];
