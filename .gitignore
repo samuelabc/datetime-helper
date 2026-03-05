@@ -30,3 +30,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
