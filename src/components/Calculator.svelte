@@ -12,7 +12,6 @@
   import AIConfidenceDiff from "./AIConfidenceDiff.svelte";
   import CountdownPanel from "./CountdownPanel.svelte";
   import CronDebugger from "./CronDebugger.svelte";
-  import ShareLinkButton from "./ShareLinkButton.svelte";
   import ReverseDecodeInput from "./ReverseDecodeInput.svelte";
   import TimezoneControls from "./TimezoneControls.svelte";
   import { parsedOperationsToRows, NaturalLanguageParseError } from "../lib/naturalLanguageParser";
@@ -23,7 +22,6 @@
   import { persistPromptByPolicy } from "../lib/aiPrivacyPolicy";
   import { emitAiTelemetry } from "../lib/aiTelemetry";
   import { encodeUrlState, decodeUrlState } from "../lib/urlState";
-  import { buildBookmarklet, parseBookmarkletSearch } from "../lib/bookmarklet";
   import { decodeDatetimeInput, ReverseDecodeError } from "../lib/reverseDecode";
   import { applyTimezoneContext, getAvailableIanaTimeZones, supportsIanaTimeZones, type TimezoneMode } from "../lib/timezoneContext";
   import { applyOperationChain, SnapOperationError } from "../lib/snapOperations";
@@ -97,14 +95,6 @@
       operations,
     }),
   );
-  let shareUrl = $derived.by(() => {
-    if (typeof window === "undefined") return `?${shareQuery}`;
-    return `${window.location.origin}${window.location.pathname}?${shareQuery}`;
-  });
-  let bookmarkletScript = $derived.by(() => {
-    const baseUrl = typeof window === "undefined" ? "https://example.invalid" : `${window.location.origin}${window.location.pathname}`;
-    return buildBookmarklet(baseUrl, shareQuery);
-  });
   let countdownValue = $derived.by(() => (countdownTargetIso ? getCountdownValue(countdownNowIso, countdownTargetIso) : null));
   let countdownUntil = $derived.by(() => (countdownValue && countdownValue.mode === "until" ? countdownValue : null));
   let countdownSince = $derived.by(() => (countdownValue && countdownValue.mode === "since" ? countdownValue : null));
@@ -337,7 +327,7 @@
     }
 
     const decoded = typeof window !== "undefined"
-      ? decodeUrlState(parseBookmarkletSearch(window.location.search) ?? window.location.search, {
+      ? decodeUrlState(window.location.search, {
           startDateInput: "now",
           operations: [createDefaultOperation(1)],
         })
@@ -742,20 +732,6 @@
         <p class="text-xs text-gray-600 dark:text-gray-300">
           Try: <span class="font-mono">"subtract 90 days then add 2 hours"</span>
         </p>
-        <details class="rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2">
-          <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200">More tools</summary>
-          <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">Use these for sharing and browser quick-launch workflows.</p>
-          <div class="mt-2 flex flex-wrap items-center gap-2">
-            <ShareLinkButton value={shareUrl} />
-            <a
-              href={bookmarkletScript}
-              aria-label="Install bookmarklet"
-              class="inline-flex items-center rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-orange-300 dark:hover:border-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              Install bookmarklet
-            </a>
-          </div>
-        </details>
       </div>
       {#if !aiSettings.geminiApiKey}
         <p class="text-xs text-amber-700 dark:text-amber-300">Add optional Gemini key in settings to use AI.</p>

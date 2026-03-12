@@ -96,7 +96,7 @@ _Session initialized with focus on a cutting-edge datetime utility website. The 
 - **Modify:** Visual timeline, confidence diff over confidence score
 - **Put to Other Uses:** Cron job debugger, countdown calculator
 - **Eliminate:** Timezone UI from v1, multi-page navigation
-- **Reverse:** Paste timestamp → decode context, bookmarklet injection
+- **Reverse:** Paste timestamp -> decode context, URL share-state injection
 
 **Ideas Generated:** #23–#35
 

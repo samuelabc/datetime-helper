@@ -66,4 +66,4 @@ For production-oriented use:
 
 1. Use explicit start dates when possible
 2. Verify each applied operation row
-3. Copy share link as reproducible evidence
+3. Copy the page URL as reproducible evidence

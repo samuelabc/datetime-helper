@@ -59,11 +59,11 @@ This document captures a critical UI/UX audit of `datetime-helper` for follow-up
 
 - **Severity:** Medium
 - **Area:** Calculator utility action cluster
-- **Observed behavior:** `Open command palette`, `Copy share link`, and `Install bookmarklet` appear similarly weighted.
+- **Observed behavior:** `Open command palette` and adjacent utility actions appear similarly weighted.
 - **Impact:** Users must parse multiple same-priority actions before acting.
 - **Recommended fixes:**
   - Keep one clear secondary CTA.
-  - Group advanced actions under “More tools”.
+  - Keep utility actions minimal and clearly subordinate to the primary workflow.
   - Add short helper text for what each tool is best for.
 
 ### 6) Medium: Command palette discoverability can improve

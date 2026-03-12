@@ -236,7 +236,7 @@ NFR18: Identical inputs produce identical results across all supported browsers
 - Epic 5: URL state, shareability, and URL-as-API contract for human and agent workflows
 - Epic 6: Reverse decode and advanced time utilities (timestamp decode, higher-order operations, extended utility flows)
 - Epic 7: AI confidence, provider flexibility, and trust controls (confidence diff + optional provider key routing)
-- Epic 8: Platform expansion for reusable embedding and adjacent developer workflows (web component, cron debugging, countdown/bookmarklet)
+- Epic 8: Platform expansion for reusable embedding and adjacent developer workflows (web component, cron debugging, countdown/share launch)
 
 ## Epic List
 
@@ -820,7 +820,7 @@ So that shared links and bookmarks immediately show the intended calculation.
 **When** results render,
 **Then** all output formats are internally consistent and correspond to hydrated state.
 
-### Story 5.3: Live URL Synchronization and Share-Link Copy
+### Story 5.3: Live URL Synchronization and Shareable URL Workflow
 
 As a developer,
 I want URL state to stay synchronized and easy to copy,
@@ -832,9 +832,9 @@ So that I can share or reuse exact calculations without manual reconstruction.
 **When** state updates,
 **Then** the URL query string updates via `history.replaceState()` without full page reload.
 
-**Given** I click "Copy share link",
-**When** clipboard copy succeeds,
-**Then** the full canonical URL is copied and a brief inline confirmation is shown.
+**Given** I copy the browser URL,
+**When** URL synchronization is active,
+**Then** the full canonical URL reflects the current calculator state for sharing.
 
 **Given** URL synchronization is active,
 **When** state changes rapidly,
@@ -1048,10 +1048,10 @@ So that I can reason about execution windows and timestamps in one workflow.
 **When** the feature is collapsed or disabled,
 **Then** the main calculator remains uncluttered and performance budgets are preserved.
 
-### Story 8.3: Countdown / Time-Until and Bookmarklet Launch
+### Story 8.3: Countdown / Time-Until and Share Launch
 
 As a developer in fast operational workflows,
-I want countdown/time-until outputs and a bookmarklet entry point,
+I want countdown/time-until outputs and a share-link entry point,
 So that I can launch and use datetime-helper from any context in seconds.
 
 **Acceptance Criteria:**
@@ -1064,10 +1064,6 @@ So that I can launch and use datetime-helper from any context in seconds.
 **When** live updates run,
 **Then** they respect reduced-motion and accessibility constraints and avoid layout jank.
 
-**Given** bookmarklet generation is enabled,
-**When** I install and trigger the bookmarklet from another webpage,
-**Then** it opens datetime-helper with encoded context/state in the URL where possible.
-
-**Given** bookmarklet context cannot be parsed,
+**Given** share-link launch state is present,
 **When** datetime-helper opens,
-**Then** it gracefully falls back to default "now" state and preserves usability.
+**Then** it restores the encoded context when valid and gracefully falls back to default "now" state when invalid.

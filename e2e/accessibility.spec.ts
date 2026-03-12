@@ -43,8 +43,6 @@ test.describe('keyboard and screen-reader support', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: /Open command palette/ })).toBeFocused();
 
-    await page.keyboard.press('Tab');
-    await expect(page.locator('summary', { hasText: 'More tools' })).toBeFocused();
   });
 
   test('uses polite and assertive live regions', async ({ page }) => {

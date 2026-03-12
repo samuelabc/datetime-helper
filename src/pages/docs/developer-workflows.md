@@ -52,7 +52,6 @@ Use this for inspecting values pulled from logs, payloads, and database records.
 ## Power features
 
 - `Share link`: copy URL with encoded calculator state
-- `Install bookmarklet`: launch with saved state from any page
 - `Timezone controls`: use UTC, local, or IANA modes
 - `Cron debugger`: preview next run times
 - `Countdown`: set current result as target

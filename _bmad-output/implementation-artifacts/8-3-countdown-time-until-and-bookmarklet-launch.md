@@ -1,4 +1,4 @@
-# Story 8.3: Countdown / Time-Until and Bookmarklet Launch
+# Story 8.3: Countdown / Time-Until and Share Launch
 
 Status: review
 
@@ -7,15 +7,14 @@ Status: review
 ## Story
 
 As a developer in fast operational workflows,
-I want countdown/time-until outputs and a bookmarklet entry point,
+I want countdown/time-until outputs and a share-link entry point,
 so that I can launch and use datetime-helper from any context in seconds.
 
 ## Acceptance Criteria
 
 1. **Given** I choose a target instant, **When** countdown mode is active, **Then** the app shows deterministic "time until" and "time since" representations alongside standard format outputs.
 2. **Given** countdown values update over time, **When** live updates run, **Then** they respect reduced-motion and accessibility constraints and avoid layout jank.
-3. **Given** bookmarklet generation is enabled, **When** I install and trigger the bookmarklet from another webpage, **Then** it opens datetime-helper with encoded context/state in the URL where possible.
-4. **Given** bookmarklet context cannot be parsed, **When** datetime-helper opens, **Then** it gracefully falls back to default "now" state and preserves usability.
+3. **Given** share-link launch state is present, **When** datetime-helper opens, **Then** it restores encoded context/state when valid and gracefully falls back to default "now" state when invalid.
 
 ## Tasks / Subtasks
 
@@ -25,8 +24,8 @@ so that I can launch and use datetime-helper from any context in seconds.
 - [x] Task 2: Implement live updates with accessibility-safe behavior (AC: #2)
   - [x] Respect reduced-motion preferences and live-region throttling
   - [x] Ensure no layout jank from ticking updates
-- [x] Task 3: Add bookmarklet launch flow and fallback handling (AC: #3, #4)
-  - [x] Generate/install bookmarklet script with URL encoding rules
+- [x] Task 3: Add share-link launch flow and fallback handling (AC: #3)
+  - [x] Preserve URL encoding rules for launch state
   - [x] Parse inbound context safely with graceful fallback to default state
 
 ## Dev Notes
@@ -39,7 +38,7 @@ so that I can launch and use datetime-helper from any context in seconds.
 ### Technical Requirements
 
 - Countdown output must be deterministic and testable.
-- Bookmarklet path must remain optional and non-intrusive.
+- Share-link path must remain optional and non-intrusive.
 
 ### Architecture Compliance
 
@@ -57,8 +56,6 @@ so that I can launch and use datetime-helper from any context in seconds.
   - `src/components/CountdownPanel.test.ts`
   - `src/lib/countdown.ts`
   - `src/lib/countdown.test.ts`
-  - `src/lib/bookmarklet.ts`
-  - `src/lib/bookmarklet.test.ts`
 
 ### Testing Requirements
 
@@ -66,8 +63,8 @@ so that I can launch and use datetime-helper from any context in seconds.
 - Manual checks:
   - Countdown values render and tick predictably
   - Reduced-motion mode suppresses motion-heavy transitions
-  - Bookmarklet opens app with encoded state when available
-  - Invalid bookmarklet context falls back cleanly to default state
+  - Share link opens app with encoded state when available
+  - Invalid launch context falls back cleanly to default state
 
 ### References
 
@@ -87,18 +84,15 @@ GPT-5.3 Codex
 
 ### Completion Notes List
 
-- Story scaffold created for countdown utilities and bookmarklet launch path.
+- Story scaffold created for countdown utilities and share launch path.
 - Added deterministic countdown utility and lightweight countdown result panels.
 - Added reduced-motion-safe countdown tick behavior with non-janky text updates.
-- Added bookmarklet generation utility and install link using existing URL-encoded state.
+- Consolidated around share-link launch using existing URL-encoded state.
 
 ### File List
 
-- `_bmad-output/implementation-artifacts/8-3-countdown-time-until-and-bookmarklet-launch.md`
 - `src/lib/countdown.ts`
 - `src/lib/countdown.test.ts`
 - `src/components/CountdownPanel.svelte`
 - `src/components/CountdownPanel.test.ts`
-- `src/lib/bookmarklet.ts`
-- `src/lib/bookmarklet.test.ts`
 - `src/components/Calculator.svelte`

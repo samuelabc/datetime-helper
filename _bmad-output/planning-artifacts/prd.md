@@ -136,7 +136,7 @@ The smallest version that solves the core problem: **one tool, one tab, one answ
 | Web component extraction | `<datetime-helper>` embeddable |
 | Cron job debugger | Adjacent developer tool |
 | Countdown / time-until calculator | Reverse direction use case |
-| Datetime bookmarklet | Tool goes to the developer |
+| Share-link quick launch | Tool goes to the developer |
 
 ## User Journeys
 
