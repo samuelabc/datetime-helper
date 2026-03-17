@@ -40,9 +40,16 @@ export interface AiProviderOperation {
   unit: OperationUnit;
 }
 
+interface AiProviderOperationInput {
+  direction?: "add" | "subtract";
+  action?: "add" | "subtract";
+  amount: number;
+  unit: OperationUnit;
+}
+
 export interface AiProviderParseOutput {
   startDate?: string;
-  operations?: AiProviderOperation[];
+  operations?: AiProviderOperationInput[];
   confidence?: {
     summary?: string;
     steps?: Array<{
@@ -207,15 +214,16 @@ export function parseAiProviderOutput(output: AiProviderParseOutput): NaturalLan
     throw new NaturalLanguageParseError("AMBIGUOUS", "AI output did not contain actionable operations.");
   }
 
-  const operations = output.operations.map((operation) => {
+  const operations = output.operations.map((rawOp) => {
+    const direction = rawOp.direction ?? rawOp.action;
     if (
-      (operation.direction !== "add" && operation.direction !== "subtract") ||
-      !Number.isInteger(operation.amount) ||
-      operation.amount < 0
+      (direction !== "add" && direction !== "subtract") ||
+      !Number.isInteger(rawOp.amount) ||
+      rawOp.amount < 0
     ) {
       throw new NaturalLanguageParseError("INVALID_OPERATION", "AI output contains invalid operation fields.");
     }
-    return operation;
+    return { direction, amount: rawOp.amount, unit: rawOp.unit };
   });
 
   const startDateIntent: StartDateIntent =

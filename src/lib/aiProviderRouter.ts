@@ -41,7 +41,10 @@ async function parseWithGemini(prompt: string, signal?: AbortSignal): Promise<Na
             parts: [
               {
                 text:
-                  "Return only strict JSON object with keys startDate (optional ISO date), operations (required), confidence (optional). " +
+                  'Return ONLY a strict JSON object (no markdown fences) with these keys: ' +
+                  '"startDate" (optional ISO 8601 date string), ' +
+                  '"operations" (required array of objects each with "direction" being "add" or "subtract", "amount" as integer, and "unit" as one of "days","months","years","hours","minutes","seconds"), ' +
+                  '"confidence" (optional number 0-1). ' +
                   `Prompt: ${prompt}`,
               },
             ],
