@@ -21,7 +21,7 @@ async function parseWithGemini(prompt: string, signal?: AbortSignal): Promise<Na
     throw new AiProviderError("MISSING_KEY", "No Gemini API key configured.");
   }
 
-  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
   const timeoutController = new AbortController();
   const timeout = setTimeout(() => timeoutController.abort(), 15000);
   const onAbort = () => timeoutController.abort();
